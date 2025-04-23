@@ -1,0 +1,9 @@
+[submodule "crawler"]
+	path = crawler
+	url = git@github.com:HarbingerZou/crawler.git
+[submodule "ds-services"]
+	path = ds-services
+	url = git@github.com:HarbingerZou/ds-services.git
+[submodule "image-ocr"]
+	path = image-ocr
+	url = git@github.com:HarbingerZou/image-ocr.git
