@@ -7,3 +7,6 @@
 [submodule "image-ocr"]
 	path = image-ocr
 	url = git@github.com:HarbingerZou/image-ocr.git
+[submodule "data-persistence"]
+	path = data-persistence
+	url = https://github.com/HarbingerZou/data-persistence.git

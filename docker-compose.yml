@@ -1,0 +1,47 @@
+version: '3.8'
+
+services:
+  image-ocr:
+    build:
+      context: ./image-ocr
+      dockerfile: Dockerfile
+    container_name: image-ocr
+    ports:
+      - "8001:3000"
+    environment:
+      - TESSDATA_PREFIX=/usr/share/tesseract-ocr/5/tessdata/
+    restart: unless-stopped
+
+  ds-services:
+    build:
+      context: ./ds-services
+      dockerfile: Dockerfile
+    container_name: ds-services
+    ports:
+      - "8002:3000"
+    restart: unless-stopped
+
+  crawler:
+    build:
+      context: ./crawler
+      dockerfile: Dockerfile
+    container_name: crawler
+    ports:
+      - "8003:3000"
+    environment:
+      - PUPPETEER_EXECUTABLE_PATH=/usr/bin/chromium
+    restart: unless-stopped
+
+  data-persistence:
+    build:
+      context: ./data-persistence
+      dockerfile: Dockerfile
+    container_name: data-persistence
+    ports:
+      - "8004:3000"
+    environment:
+      - MONGODB_URI=mongodb+srv://guest:qazwsxedc@default.ktjsvq6.mongodb.net/
+    restart: unless-stopped
+
+volumes:
+  mongodb_data:
