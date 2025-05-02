@@ -32,7 +32,7 @@ export default function Home() {
 
   const fetchContents = async () => {
     try {
-      const response = await axios.get(`/api/content`);
+      const response = await axios.get(`/api/content/get`);
       setContents(response.data.contents);
     } catch (err) {
       setError('Failed to fetch contents');
@@ -52,7 +52,7 @@ export default function Home() {
       const response = await axios.post('/api/content/create', {
         url: newUrl
       });
-
+      console.log(response.data);
       // Update state with new content
       setContents(prevContents => [response.data, ...prevContents]);
       setNewUrl('');

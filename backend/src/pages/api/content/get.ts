@@ -8,7 +8,7 @@ export default async function handler(
     const { page = 1, limit = 10, search = '', status = '' } = req.query;
     
     // Construct the URL for the data-persistence service
-    const url = new URL('http://data-persistence:3000/api/content');
+    const url = new URL(`${process.env.NEXT_PUBLIC_DATA_PERSISTENCE_URL}/api/content`);
     url.searchParams.append('page', page.toString());
     url.searchParams.append('limit', limit.toString());
     if (search) url.searchParams.append('search', search.toString());
