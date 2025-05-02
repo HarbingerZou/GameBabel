@@ -45,7 +45,7 @@ export default function ArticlePage() {
       setImageUrls(urls);
     }
   }, [article]);
-
+  console.log(imageUrls);
   const handleImageOcr = async (imageUrl: string) => {
     try {
       const response = await fetch(`/api/image-ocr`, {
@@ -58,7 +58,7 @@ export default function ArticlePage() {
           imageUrl: imageUrl
         }),
       });
-
+      
       if (!response.ok) {
         throw new Error('Failed to process image');
       }
@@ -126,7 +126,7 @@ export default function ArticlePage() {
                 <Button
                   variant="contained"
                   startIcon={<p>AAAA</p>}
-                  onClick={() => handleImageOcr(imageUrls[0])}
+                  onClick={() => handleImageOcr(imageUrls[1])}
                 >
                   Process First Image
                 </Button>
