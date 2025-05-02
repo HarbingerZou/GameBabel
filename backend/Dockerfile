@@ -17,4 +17,7 @@ RUN npm run build
 
 EXPOSE 3000
 
+# Ensure environment variables are available at runtime
+ENV NODE_ENV=production
+
 CMD ["npm", "start"] 

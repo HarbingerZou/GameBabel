@@ -12,7 +12,7 @@ const nextConfig = {
     return [
       {
         source: '/api/:path*',
-        destination: 'http://data-persistence:3000/api/:path*',
+        destination: `${process.env.NEXT_PUBLIC_DATA_PERSISTENCE_URL}/api/:path*`,
       },
     ];
   },

@@ -32,7 +32,7 @@ export default function Home() {
 
   const fetchContents = async () => {
     try {
-      const response = await axios.get(`${process.env.NEXT_PUBLIC_DATA_PERSISTENCE_URL}/api/content`);
+      const response = await axios.get(`/api/content`);
       setContents(response.data.contents);
     } catch (err) {
       setError('Failed to fetch contents');
