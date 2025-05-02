@@ -50,7 +50,7 @@ export default function Home() {
     setError('');
 
     try {
-      const response = await axios.post('/api/articles/create', {
+      const response = await axios.post('/api/articles', {
         url: newUrl
       });
       setArticles(prevArticles => [response.data, ...prevArticles]);
