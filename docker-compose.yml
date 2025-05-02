@@ -1,6 +1,19 @@
 version: '3.8'
 
 services:
+  backend:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+    container_name: backend
+    ports:
+      - "3000:3000"
+    environment:
+      - NODE_ENV=production
+    restart: unless-stopped
+    depends_on:
+      - data-persistence
+
   image-ocr:
     build:
       context: ./image-ocr
@@ -19,6 +32,8 @@ services:
     container_name: ds-services
     ports:
       - "8002:3000"
+    environment:
+      - DEEPSEEK_API_KEY=sk-c09798b2597c4769879fb29209e3f756
     restart: unless-stopped
 
   crawler:
