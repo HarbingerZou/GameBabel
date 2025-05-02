@@ -23,6 +23,16 @@ export default function Documents() {
   const [totalPages, setTotalPages] = useState(1);
   const [search, setSearch] = useState('');
   const [status, setStatus] = useState('');
+  const [showCreateForm, setShowCreateForm] = useState(false);
+  const [newContent, setNewContent] = useState({
+    title: '',
+    author: '',
+    url: '',
+    content: '',
+    source: '',
+    language: 'en'
+  });
+  const [createError, setCreateError] = useState<string | null>(null);
 
   const fetchDocuments = async (pageNum = 1, searchTerm = '', statusFilter = '') => {
     try {
@@ -43,6 +53,40 @@ export default function Documents() {
       setError('Failed to load documents');
     } finally {
       setLoading(false);
+    }
+  };
+
+  const handleCreateContent = async (e: React.FormEvent) => {
+    e.preventDefault();
+    try {
+      setCreateError(null);
+      const response = await fetch('/api/content/create', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(newContent),
+      });
+
+      if (!response.ok) {
+        const error = await response.json();
+        throw new Error(error.error || 'Failed to create content');
+      }
+
+      // Reset form and refresh content list
+      setNewContent({
+        title: '',
+        author: '',
+        url: '',
+        content: '',
+        source: '',
+        language: 'en'
+      });
+      setShowCreateForm(false);
+      fetchDocuments();
+    } catch (error) {
+      console.error('Error creating content:', error);
+      setCreateError(error instanceof Error ? error.message : 'Failed to create content');
     }
   };
 
@@ -77,7 +121,100 @@ export default function Documents() {
       </Head>
 
       <div className="container mt-4">
-        <h1 className="mb-4">Raw Documents</h1>
+        <div className="d-flex justify-content-between align-items-center mb-4">
+          <h1>Raw Documents</h1>
+          <button 
+            className="btn btn-primary"
+            onClick={() => setShowCreateForm(!showCreateForm)}
+          >
+            {showCreateForm ? 'Cancel' : 'Create New Document'}
+          </button>
+        </div>
+
+        {/* Create Content Form */}
+        {showCreateForm && (
+          <div className="card mb-4">
+            <div className="card-body">
+              <h5 className="card-title">Create New Document</h5>
+              {createError && (
+                <div className="alert alert-danger">
+                  {createError}
+                </div>
+              )}
+              <form onSubmit={handleCreateContent}>
+                <div className="row mb-3">
+                  <div className="col-md-6">
+                    <label className="form-label">Title</label>
+                    <input
+                      type="text"
+                      className="form-control"
+                      value={newContent.title}
+                      onChange={(e) => setNewContent({...newContent, title: e.target.value})}
+                      required
+                    />
+                  </div>
+                  <div className="col-md-6">
+                    <label className="form-label">Author</label>
+                    <input
+                      type="text"
+                      className="form-control"
+                      value={newContent.author}
+                      onChange={(e) => setNewContent({...newContent, author: e.target.value})}
+                      required
+                    />
+                  </div>
+                </div>
+                <div className="row mb-3">
+                  <div className="col-md-6">
+                    <label className="form-label">URL</label>
+                    <input
+                      type="url"
+                      className="form-control"
+                      value={newContent.url}
+                      onChange={(e) => setNewContent({...newContent, url: e.target.value})}
+                      required
+                    />
+                  </div>
+                  <div className="col-md-6">
+                    <label className="form-label">Source</label>
+                    <input
+                      type="text"
+                      className="form-control"
+                      value={newContent.source}
+                      onChange={(e) => setNewContent({...newContent, source: e.target.value})}
+                      required
+                    />
+                  </div>
+                </div>
+                <div className="mb-3">
+                  <label className="form-label">Content</label>
+                  <textarea
+                    className="form-control"
+                    value={newContent.content}
+                    onChange={(e) => setNewContent({...newContent, content: e.target.value})}
+                    rows={5}
+                    required
+                  />
+                </div>
+                <div className="mb-3">
+                  <label className="form-label">Language</label>
+                  <select
+                    className="form-select"
+                    value={newContent.language}
+                    onChange={(e) => setNewContent({...newContent, language: e.target.value})}
+                    required
+                  >
+                    <option value="en">English</option>
+                    <option value="zh">Chinese</option>
+                    <option value="ja">Japanese</option>
+                    <option value="ko">Korean</option>
+                  </select>
+                </div>
+                <button type="submit" className="btn btn-primary">Create Document</button>
+              </form>
+            </div>
+          </div>
+        )}
         
         {/* Search and Filter Section */}
         <div className="row mb-4">
