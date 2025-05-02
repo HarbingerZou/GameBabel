@@ -5,6 +5,9 @@ services:
     build:
       context: ./backend
       dockerfile: Dockerfile
+      args:
+        - NEXT_PUBLIC_CRAWLER_URL=http://crawler:3000
+        - NEXT_PUBLIC_DATA_PERSISTENCE_URL=http://data-persistence:3000
     container_name: backend
     ports:
       - "3001:3000"
@@ -13,6 +16,7 @@ services:
     restart: unless-stopped
     depends_on:
       - data-persistence
+      - crawler
 
   image-ocr:
     build:

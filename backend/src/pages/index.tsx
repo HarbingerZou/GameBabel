@@ -48,20 +48,14 @@ export default function Home() {
     setError('');
 
     try {
-      // First create content entry
-      const contentResponse = await axios.post(`${process.env.NEXT_PUBLIC_DATA_PERSISTENCE_URL}/api/content`, {
-        url: newUrl,
-        status: 'pending'
+      // Create content and get response
+      const response = await axios.post('/api/content/create', {
+        url: newUrl
       });
 
-      // Then trigger crawler
-      await axios.post(`${process.env.NEXT_PUBLIC_CRAWLER_URL}/api/crawl`, {
-        url: newUrl,
-        contentId: contentResponse.data._id
-      });
-
+      // Update state with new content
+      setContents(prevContents => [response.data, ...prevContents]);
       setNewUrl('');
-      fetchContents();
     } catch (err) {
       setError('Failed to process URL');
       console.error(err);
