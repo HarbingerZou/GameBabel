@@ -14,28 +14,30 @@ import {
   TextField,
   CircularProgress
 } from '@mui/material';
+import { useRouter } from 'next/router';
 import axios from 'axios';
 
-interface Content {
+interface Article {
   _id: string;
   url: string;
+  title: string;
   status: string;
-  originalContent: string;
-  createdAt: string;
+  timestamp: string;
 }
 
 export default function Home() {
-  const [contents, setContents] = useState<Content[]>([]);
+  const router = useRouter();
+  const [articles, setArticles] = useState<Article[]>([]);
   const [newUrl, setNewUrl] = useState('');
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
 
-  const fetchContents = async () => {
+  const fetchArticles = async () => {
     try {
-      const response = await axios.get(`/api/content/get`);
-      setContents(response.data.contents);
+      const response = await axios.get(`/api/articles`);
+      setArticles(response.data);
     } catch (err) {
-      setError('Failed to fetch contents');
+      setError('Failed to fetch articles');
       console.error(err);
     }
   };
@@ -48,26 +50,27 @@ export default function Home() {
     setError('');
 
     try {
-      // Create content and get response
-      const response = await axios.post('/api/content/create', {
+      const response = await axios.post('/api/articles/create', {
         url: newUrl
       });
-      console.log(response.data);
-      // Update state with new content
-      setContents(prevContents => [response.data, ...prevContents]);
+      setArticles(prevArticles => [response.data, ...prevArticles]);
       setNewUrl('');
     } catch (err) {
-      setError('Failed to process URL');
+      setError('Failed to process article');
       console.error(err);
     } finally {
       setLoading(false);
     }
   };
 
+  const handleViewArticle = (id: string) => {
+    router.push(`/article/${id}`);
+  };
+
   useEffect(() => {
-    fetchContents();
-    // Set up polling for content updates
-    const interval = setInterval(fetchContents, 5000);
+    fetchArticles();
+    // Set up polling for article updates
+    const interval = setInterval(fetchArticles, 5000);
     return () => clearInterval(interval);
   }, []);
 
@@ -75,7 +78,7 @@ export default function Home() {
     <Container maxWidth="lg">
       <Box sx={{ my: 4 }}>
         <Typography variant="h4" component="h1" gutterBottom>
-          Content Management
+          Article Management
         </Typography>
 
         <Paper sx={{ p: 2, mb: 2 }}>
@@ -83,10 +86,10 @@ export default function Home() {
             <Box sx={{ display: 'flex', gap: 2 }}>
               <TextField
                 fullWidth
-                label="New URL"
+                label="Article URL"
                 value={newUrl}
                 onChange={(e) => setNewUrl(e.target.value)}
-                placeholder="Enter URL to process"
+                placeholder="Enter article URL to process"
               />
               <Button 
                 type="submit" 
@@ -109,6 +112,7 @@ export default function Home() {
           <Table>
             <TableHead>
               <TableRow>
+                <TableCell>Title</TableCell>
                 <TableCell>URL</TableCell>
                 <TableCell>Status</TableCell>
                 <TableCell>Created At</TableCell>
@@ -116,18 +120,19 @@ export default function Home() {
               </TableRow>
             </TableHead>
             <TableBody>
-              {contents.map((content) => (
-                <TableRow key={content._id}>
-                  <TableCell>{content.url}</TableCell>
-                  <TableCell>{content.status}</TableCell>
-                  <TableCell>{new Date(content.createdAt).toLocaleString()}</TableCell>
+              {articles.map((article) => (
+                <TableRow key={article._id}>
+                  <TableCell>{article.title || 'Untitled'}</TableCell>
+                  <TableCell>{article.url}</TableCell>
+                  <TableCell>{article.status}</TableCell>
+                  <TableCell>{new Date(article.timestamp).toLocaleString()}</TableCell>
                   <TableCell>
                     <Button 
                       variant="outlined" 
                       size="small"
-                      onClick={() => window.open(content.url, '_blank')}
+                      onClick={() => handleViewArticle(article._id)}
                     >
-                      View
+                      View Article
                     </Button>
                   </TableCell>
                 </TableRow>
