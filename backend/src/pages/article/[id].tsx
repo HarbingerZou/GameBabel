@@ -26,7 +26,7 @@ export default function ArticlePage() {
   const [article, setArticle] = useState<Article | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  const [ocrResult, setOcrResult] = useState<string | null>(null);
+  const [styledHtml, setStyledHtml] = useState<string | null>(null);
   const [imageUrls, setImageUrls] = useState<string[]>([]);
 
   const extractImageUrls = (content: string):string[] => {
@@ -58,13 +58,14 @@ export default function ArticlePage() {
           imageUrl: imageUrl
         }),
       });
-      
-      if (!response.ok) {
-        throw new Error('Failed to process image');
+      if(response.status === 200) {
+        const data = await response.json();
+        console.log("data", data);
+        setStyledHtml(data.transformedHtml);
+      } else {
+        setError('Failed to process image');
       }
 
-      const data = await response.json();
-      setOcrResult(data.text);
     } catch (err) {
       console.error('Error processing image:', err);
       setError('Failed to process image');
@@ -125,7 +126,7 @@ export default function ArticlePage() {
               {imageUrls.length > 0 && (
                 <Button
                   variant="contained"
-                  startIcon={<p>AAAA</p>}
+                  startIcon={<></>}
                   onClick={() => handleImageOcr(imageUrls[1])}
                 >
                   Process First Image
@@ -211,16 +212,21 @@ export default function ArticlePage() {
               </Box>
             )}
 
-            {ocrResult && (
+            {styledHtml && (
               <Box sx={{ mt: 3 }}>
                 <Typography variant="h6" gutterBottom>OCR Result</Typography>
-                <Paper sx={{ p: 2, bgcolor: 'grey.100' }}>
-                  <Typography variant="body1" sx={{ whiteSpace: 'pre-wrap' }}>
-                    {ocrResult}
-                  </Typography>
-                </Paper>
+                <Box 
+                  sx={{ 
+                    p: 2, 
+                    border: '1px solid #ddd', 
+                    borderRadius: 1,
+                    backgroundColor: '#f8f9fa'
+                  }}
+                  dangerouslySetInnerHTML={{ __html: styledHtml }}
+                />
               </Box>
             )}
+
           </Paper>
         </Grid>
       </Grid>
