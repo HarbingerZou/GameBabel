@@ -1,6 +1,18 @@
-import { useState, useEffect } from 'react';
-import { useRouter } from 'next/router';
-import { Box, Container, Typography, CircularProgress, Paper, Divider, Chip, Button, Grid } from '@mui/material';
+import { useState, useEffect } from "react";
+import { useRouter } from "next/router";
+import {
+  Box,
+  Container,
+  Typography,
+  CircularProgress,
+  Paper,
+  Divider,
+  Chip,
+  Button,
+  Grid,
+} from "@mui/material";
+import { GetServerSideProps } from "next";
+
 interface Article {
   _id: string;
   title: string;
@@ -20,16 +32,21 @@ interface Article {
   updatedAt: string;
 }
 
-export default function ArticlePage() {
+interface ArticlePageProps {
+  article: Article;
+}
+
+export default function ArticlePage({
+  article: initialArticle,
+}: ArticlePageProps) {
   const router = useRouter();
-  const { id } = router.query;
-  const [article, setArticle] = useState<Article | null>(null);
-  const [loading, setLoading] = useState(true);
+  const [article, setArticle] = useState<Article>(initialArticle);
+  const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [styledHtml, setStyledHtml] = useState<string | null>(null);
   const [imageUrls, setImageUrls] = useState<string[]>([]);
 
-  const extractImageUrls = (content: string):string[] => {
+  const extractImageUrls = (content: string): string[] => {
     const imgRegex = /<img[^>]+src="([^">]+)"/g;
     const urls: string[] = [];
     let match;
@@ -45,59 +62,66 @@ export default function ArticlePage() {
       setImageUrls(urls);
     }
   }, [article]);
-  console.log(imageUrls);
+
   const handleImageOcr = async (imageUrl: string) => {
+    setLoading(true);
     try {
       const response = await fetch(`/api/image-ocr`, {
-        method: 'POST',
+        method: "POST",
         headers: {
-          'Content-Type': 'application/json',
+          "Content-Type": "application/json",
         },
         body: JSON.stringify({
-          articleId: id,
-          imageUrl: imageUrl
+          articleId: article._id,
+          imageUrl: imageUrl,
         }),
       });
-      if(response.status === 200) {
+      if (response.status === 200) {
         const data = await response.json();
         console.log("data", data);
         setStyledHtml(data.transformedHtml);
       } else {
-        setError('Failed to process image');
+        setError("Failed to process image");
       }
-
     } catch (err) {
-      console.error('Error processing image:', err);
-      setError('Failed to process image');
+      console.error("Error processing image:", err);
+      setError("Failed to process image");
+    } finally {
+      setLoading(false);
     }
   };
 
-  useEffect(() => {
-    if (id) {
-      fetch(`/api/articles?id=${id}`)
-        .then(res => {
-          if (!res.ok) {
-            throw new Error('Failed to fetch article');
-          }
-          return res.json();
-        })
-        .then(data => {
-          console.log('Fetched article data:', data);
-          setArticle(data);
-          setLoading(false);
-        })
-        .catch(err => {
-          console.error('Error fetching article:', err);
-          setError('Failed to load article');
-          setLoading(false);
-        });
+  const handleContentTranslate = async () => {
+    setLoading(true);
+    try {
+      const response = await fetch(`/api/content-translate`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          articleId: article._id,
+        }),
+      });
+      if (response.status === 200) {
+        const data = await response.json();
+        console.log("data", data);
+        setStyledHtml(data.translatedHtml);
+      } else {
+        setError("Failed to process content");
+      }
+    } catch (err) {
+      console.error("Error processing content:", err);
+      setError("Failed to process content");
+    } finally {
+      setLoading(false);
     }
-  }, [id]);
+  };
 
   if (loading) {
     return (
       <Container>
-        <Box sx={{ display: 'flex', justifyContent: 'center', mt: 4 }}>
+        <Box sx={{ display: "flex", justifyContent: "center", mt: 4 }}>
           <CircularProgress />
         </Box>
       </Container>
@@ -108,7 +132,7 @@ export default function ArticlePage() {
     return (
       <Container>
         <Box sx={{ mt: 4 }}>
-          <Typography color="error">{error || 'Article not found'}</Typography>
+          <Typography color="error">{error || "Article not found"}</Typography>
         </Box>
       </Container>
     );
@@ -119,7 +143,14 @@ export default function ArticlePage() {
       <Grid container spacing={3}>
         <Grid item xs={12} md={8}>
           <Paper elevation={3} sx={{ p: 4 }}>
-            <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 2 }}>
+            <Box
+              sx={{
+                display: "flex",
+                justifyContent: "space-between",
+                alignItems: "center",
+                mb: 2,
+              }}
+            >
               <Typography variant="h4" component="h1">
                 {article.title}
               </Typography>
@@ -127,24 +158,20 @@ export default function ArticlePage() {
                 <Button
                   variant="contained"
                   startIcon={<></>}
-                  onClick={() => handleImageOcr(imageUrls[1])}
+                  onClick={() => handleContentTranslate()}
                 >
-                  Process First Image
+                  Translate Content
                 </Button>
               )}
             </Box>
-            
+
             <Box sx={{ mb: 2 }}>
-              <Chip 
-                label={article.status} 
-                color={article.status === 'completed' ? 'success' : 'warning'} 
-                sx={{ mr: 1 }} 
+              <Chip
+                label={article.status}
+                color={article.status === "completed" ? "success" : "warning"}
+                sx={{ mr: 1 }}
               />
-              <Chip 
-                label={article.language} 
-                color="info" 
-                sx={{ mr: 1 }} 
-              />
+              <Chip label={article.language} color="info" sx={{ mr: 1 }} />
             </Box>
 
             <Box sx={{ mb: 2 }}>
@@ -161,14 +188,17 @@ export default function ArticlePage() {
 
             <Box sx={{ mb: 2 }}>
               <Typography variant="body2" color="text.secondary" gutterBottom>
-                <strong>Created:</strong> {new Date(article.createdAt).toLocaleString()}
+                <strong>Created:</strong>{" "}
+                {new Date(article.createdAt).toLocaleString()}
               </Typography>
               <Typography variant="body2" color="text.secondary" gutterBottom>
-                <strong>Last updated:</strong> {new Date(article.updatedAt).toLocaleString()}
+                <strong>Last updated:</strong>{" "}
+                {new Date(article.updatedAt).toLocaleString()}
               </Typography>
               {article.metadata.originalPubTime && (
                 <Typography variant="body2" color="text.secondary" gutterBottom>
-                  <strong>Original publication:</strong> {new Date(article.metadata.originalPubTime).toLocaleString()}
+                  <strong>Original publication:</strong>{" "}
+                  {new Date(article.metadata.originalPubTime).toLocaleString()}
                 </Typography>
               )}
             </Box>
@@ -176,12 +206,18 @@ export default function ArticlePage() {
             <Divider sx={{ my: 3 }} />
 
             <Box sx={{ mb: 3 }}>
-              <Typography variant="h6" gutterBottom>Content</Typography>
-              <Typography variant="body1" sx={{ whiteSpace: 'pre-wrap' }}>
+              <Typography variant="h6" gutterBottom>
+                Content
+              </Typography>
+              <Typography variant="body1" sx={{ whiteSpace: "pre-wrap" }}>
                 {article.content}
               </Typography>
               {article.metadata.wordCount && (
-                <Typography variant="body2" color="text.secondary" sx={{ mt: 1 }}>
+                <Typography
+                  variant="body2"
+                  color="text.secondary"
+                  sx={{ mt: 1 }}
+                >
                   Word count: {article.metadata.wordCount}
                 </Typography>
               )}
@@ -189,20 +225,26 @@ export default function ArticlePage() {
 
             {imageUrls.length > 0 && (
               <Box sx={{ mt: 3 }}>
-                <Typography variant="h6" gutterBottom>Found Images</Typography>
-                <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 2 }}>
+                <Typography variant="h6" gutterBottom>
+                  Found Images
+                </Typography>
+                <Box sx={{ display: "flex", flexWrap: "wrap", gap: 2 }}>
                   {imageUrls.map((url, index) => (
-                    <Box key={index} sx={{ position: 'relative' }}>
-                      <img 
-                        src={url} 
-                        alt={`Article image ${index + 1}`} 
-                        style={{ maxWidth: '200px', maxHeight: '200px', objectFit: 'contain' }}
+                    <Box key={index} sx={{ position: "relative" }}>
+                      <img
+                        src={url}
+                        alt={`Article image ${index + 1}`}
+                        style={{
+                          maxWidth: "200px",
+                          maxHeight: "200px",
+                          objectFit: "contain",
+                        }}
                       />
                       <Button
                         variant="outlined"
                         size="small"
                         onClick={() => handleImageOcr(url)}
-                        sx={{ position: 'absolute', bottom: 8, right: 8 }}
+                        sx={{ position: "absolute", bottom: 8, right: 8 }}
                       >
                         OCR
                       </Button>
@@ -211,25 +253,73 @@ export default function ArticlePage() {
                 </Box>
               </Box>
             )}
-
-            {styledHtml && (
-              <Box sx={{ mt: 3 }}>
-                <Typography variant="h6" gutterBottom>OCR Result</Typography>
-                <Box 
-                  sx={{ 
-                    p: 2, 
-                    border: '1px solid #ddd', 
-                    borderRadius: 1,
-                    backgroundColor: '#f8f9fa'
-                  }}
-                  dangerouslySetInnerHTML={{ __html: styledHtml }}
-                />
-              </Box>
-            )}
-
           </Paper>
         </Grid>
+
+        {styledHtml && (
+          <Grid item xs={12} md={4}>
+            <Paper elevation={3} sx={{ p: 4, height: "100%" }}>
+              <Typography variant="h6" gutterBottom>
+                OCR Result
+              </Typography>
+              <Box
+                sx={{
+                  p: 2,
+                  border: "1px solid #ddd",
+                  borderRadius: 1,
+                  backgroundColor: "#f8f9fa",
+                  height: "calc(100% - 40px)",
+                  overflow: "auto",
+                }}
+                dangerouslySetInnerHTML={{ __html: styledHtml }}
+              />
+            </Paper>
+          </Grid>
+        )}
       </Grid>
     </Container>
   );
-} 
+}
+
+export const getServerSideProps: GetServerSideProps = async (context) => {
+  const { id } = context.params || {};
+
+  if (!id) {
+    return {
+      notFound: true,
+    };
+  }
+
+  try {
+    const DATA_PERSISTENCE_URL =
+      process.env.NEXT_PUBLIC_DATA_PERSISTENCE_URL ||
+      "http://data-persistence:3000";
+    const response = await fetch(`${DATA_PERSISTENCE_URL}/api/content/${id}`, {
+      headers: {
+        Accept: "application/json",
+      },
+    });
+
+    if (!response.ok) {
+      if (response.status === 404) {
+        return {
+          notFound: true,
+        };
+      }
+      throw new Error(`Failed to fetch article: ${response.status}`);
+    }
+
+    const article = await response.json();
+
+    return {
+      props: {
+        article,
+      },
+    };
+  } catch (error) {
+    console.error("Error fetching article:", error);
+    return {
+      notFound: true,
+    };
+  }
+};

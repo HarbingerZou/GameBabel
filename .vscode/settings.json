@@ -1,0 +1,19 @@
+{
+  "explorer.confirmDelete": false,
+  "editor.formatOnSave": true,
+  "editor.defaultFormatter": "esbenp.prettier-vscode",
+  "css.validate": false,
+  "scss.validate": false,
+  "less.validate": false,
+  "typescript.updateImportsOnFileMove.enabled": "always",
+  "editor.tabSize": 4,
+  "javascript.updateImportsOnFileMove.enabled": "always",
+  "python.createEnvironment.trigger": "off",
+  "makefile.configureOnOpen": true,
+  "diffEditor.ignoreTrimWhitespace": true,
+  "files.associations": {
+    "*.py": "python"
+  },
+  "security.workspace.trust.untrustedFiles": "open",
+  "database-client.autoSync": true
+}
