@@ -16,16 +16,16 @@ import {
 } from "@mui/material";
 import { useRouter } from "next/router";
 import axios from "axios";
-import { Content } from "../common.type";
+import { Article } from "../common.type";
 import { GetServerSideProps } from "next";
 
 interface HomeProps {
-  initialArticles: Content[];
+  initialArticles: Article[];
 }
 
 export default function Home({ initialArticles }: HomeProps) {
   const router = useRouter();
-  const [articles, setArticles] = useState<Content[]>(initialArticles);
+  const [articles, setArticles] = useState<Article[]>(initialArticles);
   const [newUrl, setNewUrl] = useState("");
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");

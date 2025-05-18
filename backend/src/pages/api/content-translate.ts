@@ -1,6 +1,7 @@
 import type { NextApiRequest, NextApiResponse } from "next";
 import axios from "axios";
-import type { OCRResult } from "../../common.type";
+import type { OCRResult, OCRResultData } from "../../common.type";
+import { extractImageUrls } from "../../utils/image_processing";
 
 const OCR_SERVICE_URL =
   process.env.NEXT_PUBLIC_OCR_URL || "http://localhost:8001";
@@ -46,7 +47,7 @@ export default async function handler(
     }
     const article = await articleResponse.json();
 
-    const imageUrls = extractImageUrls(article.content);
+    const imageUrls: string[] = extractImageUrls(article.content);
     console.log("Found image URLs:", imageUrls);
 
     // Convert relative URL to absolute URL if needed
@@ -70,10 +71,10 @@ export default async function handler(
             imageUrl: imageUrl,
           }
         );
-        const ocrResult = ocrResponse.data;
+        const ocrResult: OCRResult = ocrResponse.data;
         console.log(`OCR result for ${imageUrl}:`, ocrResult);
 
-        let text = ocrResult.text;
+        let text: OCRResultData[] = ocrResult.data;
         if (text.length === 0) {
           console.log(`Skipping image ${imageUrl} due to empty OCR result`);
           continue;
@@ -113,7 +114,7 @@ export default async function handler(
     );
 
     const translatedHtml = translateResponse.data.translatedHtml;
-
+    console.log("Translated HTML length:", translatedHtml.length);
     // Return the translated content
     return res.status(200).json({
       translatedHtml: translatedHtml,
@@ -126,13 +127,3 @@ export default async function handler(
     });
   }
 }
-
-const extractImageUrls = (content: string): string[] => {
-  const imgRegex = /<img[^>]+src="([^">]+)"/g;
-  const urls: string[] = [];
-  let match;
-  while ((match = imgRegex.exec(content)) !== null) {
-    urls.push(match[1]);
-  }
-  return urls;
-};

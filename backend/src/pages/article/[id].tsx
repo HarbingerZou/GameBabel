@@ -12,25 +12,8 @@ import {
   Grid,
 } from "@mui/material";
 import { GetServerSideProps } from "next";
-
-interface Article {
-  _id: string;
-  title: string;
-  author: string;
-  url: string;
-  content: string;
-  source: string;
-  language: string;
-  status: string;
-  metadata: {
-    crawledAt: string;
-    wordCount?: number;
-    hasImages?: boolean;
-    originalPubTime?: string;
-  };
-  createdAt: string;
-  updatedAt: string;
-}
+import { Article, OCRResult } from "../../common.type";
+import { extractImageUrls } from "../../utils/image_processing";
 
 interface ArticlePageProps {
   article: Article;
@@ -165,15 +148,6 @@ const ArticleContent = ({
       </Box>
 
       <Box sx={{ mb: 2 }}>
-        <Chip
-          label={article.status}
-          color={article.status === "completed" ? "success" : "warning"}
-          sx={{ mr: 1 }}
-        />
-        <Chip label={article.language} color="info" sx={{ mr: 1 }} />
-      </Box>
-
-      <Box sx={{ mb: 2 }}>
         <Typography variant="body1" gutterBottom>
           <strong>Author:</strong> {article.author}
         </Typography>
@@ -188,11 +162,11 @@ const ArticleContent = ({
       <Box sx={{ mb: 2 }}>
         <Typography variant="body2" color="text.secondary" gutterBottom>
           <strong>Created:</strong>{" "}
-          {new Date(article.createdAt).toLocaleString()}
+          {new Date(article.metadata.crawledAt).toLocaleString()}
         </Typography>
         <Typography variant="body2" color="text.secondary" gutterBottom>
-          <strong>Last updated:</strong>{" "}
-          {new Date(article.updatedAt).toLocaleString()}
+          <strong>Original publication Time:</strong>{" "}
+          {new Date(article.metadata.originalPubTime).toLocaleString()}
         </Typography>
         {article.metadata.originalPubTime && (
           <Typography variant="body2" color="text.secondary" gutterBottom>
@@ -244,6 +218,33 @@ const TranslatedContent = ({ styledHtml }: TranslatedContentProps) => {
   );
 };
 
+function Loading() {
+  const [seconds, setSeconds] = useState(0);
+  useEffect(() => {
+    const interval = setInterval(() => {
+      setSeconds((seconds) => seconds + 1);
+    }, 1000);
+    return () => clearInterval(interval);
+  }, []);
+  return (
+    <Container>
+      <Box
+        sx={{
+          display: "flex",
+          justifyContent: "center",
+          mt: 4,
+          flexDirection: "column",
+          alignItems: "center",
+        }}
+      >
+        <CircularProgress />
+        <Typography variant="body1" sx={{ ml: 2 }}>
+          Loading... {seconds} seconds
+        </Typography>
+      </Box>
+    </Container>
+  );
+}
 export default function ArticlePage({
   article: initialArticle,
 }: ArticlePageProps) {
@@ -253,16 +254,6 @@ export default function ArticlePage({
   const [error, setError] = useState<string | null>(null);
   const [styledHtml, setStyledHtml] = useState<string | null>(null);
   const [imageUrls, setImageUrls] = useState<string[]>([]);
-
-  const extractImageUrls = (content: string): string[] => {
-    const imgRegex = /<img[^>]+src="([^">]+)"/g;
-    const urls: string[] = [];
-    let match;
-    while ((match = imgRegex.exec(content)) !== null) {
-      urls.push(match[1]);
-    }
-    return urls;
-  };
 
   useEffect(() => {
     if (article?.content) {
@@ -285,8 +276,9 @@ export default function ArticlePage({
         }),
       });
       if (response.status === 200) {
-        const data = await response.json();
-        setStyledHtml(data.transformedHtml);
+        const ocrResult: OCRResult = await response.json();
+        console.log("data", ocrResult);
+        setStyledHtml(ocrResult.data.map((t) => t.text).join("\n"));
       } else {
         setError("Failed to process image");
       }
@@ -325,13 +317,7 @@ export default function ArticlePage({
   };
 
   if (loading) {
-    return (
-      <Container>
-        <Box sx={{ display: "flex", justifyContent: "center", mt: 4 }}>
-          <CircularProgress />
-        </Box>
-      </Container>
-    );
+    return <Loading />;
   }
 
   if (error || !article) {

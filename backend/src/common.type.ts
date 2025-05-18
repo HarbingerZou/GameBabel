@@ -1,4 +1,4 @@
-export interface Content {
+export interface Article {
   _id: string;
   title: string;
   author: string;
@@ -26,7 +26,7 @@ export interface Translation {
   };
 }
 
-export interface OCRResultText {
+export interface OCRResultData {
   boundingBox: [number, number][];
   text: string;
   confidence: number;
@@ -34,6 +34,6 @@ export interface OCRResultText {
 
 export interface OCRResult {
   articleId: string;
-  text: OCRResultText[];
+  data: OCRResultData[];
   success: boolean;
 }
