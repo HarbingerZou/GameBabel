@@ -36,6 +36,214 @@ interface ArticlePageProps {
   article: Article;
 }
 
+interface ImageDisplayProps {
+  url: string;
+  index: number;
+  onOcrClick: (url: string) => void;
+}
+
+interface ImagesContainerProps {
+  imageUrls: string[];
+  onOcrClick: (url: string) => void;
+}
+
+interface ArticleContentProps {
+  article: Article;
+  onTranslateClick: () => void;
+  hasImages: boolean;
+}
+
+interface TranslatedContentProps {
+  styledHtml: string | null;
+}
+
+const ImageDisplay = ({ url, index, onOcrClick }: ImageDisplayProps) => {
+  const imageUrl = url.startsWith("//") ? `https:${url}` : url;
+
+  return (
+    <Box
+      sx={{
+        position: "relative",
+        width: "200px",
+        height: "200px",
+        display: "flex",
+        flexDirection: "column",
+        alignItems: "center",
+        gap: 1,
+        p: 1,
+        border: "1px solid #eee",
+        borderRadius: 1,
+        backgroundColor: "#fafafa",
+      }}
+    >
+      <Box
+        sx={{
+          flex: 1,
+          width: "100%",
+          display: "flex",
+          alignItems: "center",
+          justifyContent: "center",
+          overflow: "hidden",
+        }}
+      >
+        <img
+          src={`/api/proxy-image?url=${encodeURIComponent(imageUrl)}`}
+          alt={`Article image ${index + 1}`}
+          style={{
+            maxWidth: "100%",
+            maxHeight: "100%",
+            objectFit: "contain",
+          }}
+        />
+      </Box>
+      <Button
+        variant="outlined"
+        size="small"
+        onClick={() => onOcrClick(imageUrl)}
+        fullWidth
+      >
+        OCR
+      </Button>
+    </Box>
+  );
+};
+
+const ImagesContainer = ({ imageUrls, onOcrClick }: ImagesContainerProps) => {
+  if (imageUrls.length === 0) return null;
+
+  return (
+    <Box sx={{ mt: 3 }}>
+      <Typography variant="h6" gutterBottom>
+        Found Images
+      </Typography>
+      <Box
+        sx={{
+          display: "grid",
+          gridTemplateColumns: "repeat(auto-fill, minmax(200px, 1fr))",
+          gap: 2,
+          p: 2,
+          backgroundColor: "#f5f5f5",
+          borderRadius: 1,
+        }}
+      >
+        {imageUrls.map((url, index) => (
+          <ImageDisplay
+            key={index}
+            url={url}
+            index={index}
+            onOcrClick={onOcrClick}
+          />
+        ))}
+      </Box>
+    </Box>
+  );
+};
+
+const ArticleContent = ({
+  article,
+  onTranslateClick,
+  hasImages,
+}: ArticleContentProps) => {
+  return (
+    <Paper elevation={3} sx={{ p: 4 }}>
+      <Box
+        sx={{
+          display: "flex",
+          justifyContent: "space-between",
+          alignItems: "center",
+          mb: 2,
+        }}
+      >
+        <Typography variant="h4" component="h1">
+          {article.title}
+        </Typography>
+        {hasImages && (
+          <Button variant="contained" onClick={onTranslateClick}>
+            Translate Content
+          </Button>
+        )}
+      </Box>
+
+      <Box sx={{ mb: 2 }}>
+        <Chip
+          label={article.status}
+          color={article.status === "completed" ? "success" : "warning"}
+          sx={{ mr: 1 }}
+        />
+        <Chip label={article.language} color="info" sx={{ mr: 1 }} />
+      </Box>
+
+      <Box sx={{ mb: 2 }}>
+        <Typography variant="body1" gutterBottom>
+          <strong>Author:</strong> {article.author}
+        </Typography>
+        <Typography variant="body1" gutterBottom>
+          <strong>Source:</strong> {article.source}
+        </Typography>
+        <Typography variant="body1" gutterBottom>
+          <strong>URL:</strong> {article.url}
+        </Typography>
+      </Box>
+
+      <Box sx={{ mb: 2 }}>
+        <Typography variant="body2" color="text.secondary" gutterBottom>
+          <strong>Created:</strong>{" "}
+          {new Date(article.createdAt).toLocaleString()}
+        </Typography>
+        <Typography variant="body2" color="text.secondary" gutterBottom>
+          <strong>Last updated:</strong>{" "}
+          {new Date(article.updatedAt).toLocaleString()}
+        </Typography>
+        {article.metadata.originalPubTime && (
+          <Typography variant="body2" color="text.secondary" gutterBottom>
+            <strong>Original publication:</strong>{" "}
+            {new Date(article.metadata.originalPubTime).toLocaleString()}
+          </Typography>
+        )}
+      </Box>
+
+      <Divider sx={{ my: 3 }} />
+
+      <Box sx={{ mb: 3 }}>
+        <Typography variant="h6" gutterBottom>
+          Content
+        </Typography>
+        <Typography variant="body1" sx={{ whiteSpace: "pre-wrap" }}>
+          {article.content}
+        </Typography>
+        {article.metadata.wordCount && (
+          <Typography variant="body2" color="text.secondary" sx={{ mt: 1 }}>
+            Word count: {article.metadata.wordCount}
+          </Typography>
+        )}
+      </Box>
+    </Paper>
+  );
+};
+
+const TranslatedContent = ({ styledHtml }: TranslatedContentProps) => {
+  if (!styledHtml) return null;
+
+  return (
+    <Paper elevation={3} sx={{ p: 4, height: "100%" }}>
+      <Typography variant="h6" gutterBottom>
+        OCR Result
+      </Typography>
+      <Box
+        sx={{
+          p: 2,
+          border: "1px solid #ddd",
+          borderRadius: 1,
+          backgroundColor: "#f8f9fa",
+          height: "calc(100% - 40px)",
+          overflow: "auto",
+        }}
+        dangerouslySetInnerHTML={{ __html: styledHtml }}
+      />
+    </Paper>
+  );
+};
+
 export default function ArticlePage({
   article: initialArticle,
 }: ArticlePageProps) {
@@ -78,7 +286,6 @@ export default function ArticlePage({
       });
       if (response.status === 200) {
         const data = await response.json();
-        console.log("data", data);
         setStyledHtml(data.transformedHtml);
       } else {
         setError("Failed to process image");
@@ -105,7 +312,6 @@ export default function ArticlePage({
       });
       if (response.status === 200) {
         const data = await response.json();
-        console.log("data", data);
         setStyledHtml(data.translatedHtml);
       } else {
         setError("Failed to process content");
@@ -141,139 +347,17 @@ export default function ArticlePage({
   return (
     <Container>
       <Grid container spacing={3}>
-        <Grid item xs={12} md={8}>
-          <Paper elevation={3} sx={{ p: 4 }}>
-            <Box
-              sx={{
-                display: "flex",
-                justifyContent: "space-between",
-                alignItems: "center",
-                mb: 2,
-              }}
-            >
-              <Typography variant="h4" component="h1">
-                {article.title}
-              </Typography>
-              {imageUrls.length > 0 && (
-                <Button
-                  variant="contained"
-                  startIcon={<></>}
-                  onClick={() => handleContentTranslate()}
-                >
-                  Translate Content
-                </Button>
-              )}
-            </Box>
-
-            <Box sx={{ mb: 2 }}>
-              <Chip
-                label={article.status}
-                color={article.status === "completed" ? "success" : "warning"}
-                sx={{ mr: 1 }}
-              />
-              <Chip label={article.language} color="info" sx={{ mr: 1 }} />
-            </Box>
-
-            <Box sx={{ mb: 2 }}>
-              <Typography variant="body1" gutterBottom>
-                <strong>Author:</strong> {article.author}
-              </Typography>
-              <Typography variant="body1" gutterBottom>
-                <strong>Source:</strong> {article.source}
-              </Typography>
-              <Typography variant="body1" gutterBottom>
-                <strong>URL:</strong> {article.url}
-              </Typography>
-            </Box>
-
-            <Box sx={{ mb: 2 }}>
-              <Typography variant="body2" color="text.secondary" gutterBottom>
-                <strong>Created:</strong>{" "}
-                {new Date(article.createdAt).toLocaleString()}
-              </Typography>
-              <Typography variant="body2" color="text.secondary" gutterBottom>
-                <strong>Last updated:</strong>{" "}
-                {new Date(article.updatedAt).toLocaleString()}
-              </Typography>
-              {article.metadata.originalPubTime && (
-                <Typography variant="body2" color="text.secondary" gutterBottom>
-                  <strong>Original publication:</strong>{" "}
-                  {new Date(article.metadata.originalPubTime).toLocaleString()}
-                </Typography>
-              )}
-            </Box>
-
-            <Divider sx={{ my: 3 }} />
-
-            <Box sx={{ mb: 3 }}>
-              <Typography variant="h6" gutterBottom>
-                Content
-              </Typography>
-              <Typography variant="body1" sx={{ whiteSpace: "pre-wrap" }}>
-                {article.content}
-              </Typography>
-              {article.metadata.wordCount && (
-                <Typography
-                  variant="body2"
-                  color="text.secondary"
-                  sx={{ mt: 1 }}
-                >
-                  Word count: {article.metadata.wordCount}
-                </Typography>
-              )}
-            </Box>
-
-            {imageUrls.length > 0 && (
-              <Box sx={{ mt: 3 }}>
-                <Typography variant="h6" gutterBottom>
-                  Found Images
-                </Typography>
-                <Box sx={{ display: "flex", flexWrap: "wrap", gap: 2 }}>
-                  {imageUrls.map((url, index) => (
-                    <Box key={index} sx={{ position: "relative" }}>
-                      <img
-                        src={url}
-                        alt={`Article image ${index + 1}`}
-                        style={{
-                          maxWidth: "200px",
-                          maxHeight: "200px",
-                          objectFit: "contain",
-                        }}
-                      />
-                      <Button
-                        variant="outlined"
-                        size="small"
-                        onClick={() => handleImageOcr(url)}
-                        sx={{ position: "absolute", bottom: 8, right: 8 }}
-                      >
-                        OCR
-                      </Button>
-                    </Box>
-                  ))}
-                </Box>
-              </Box>
-            )}
-          </Paper>
+        <Grid item xs={12} md={styledHtml ? 8 : 12}>
+          <ArticleContent
+            article={article}
+            onTranslateClick={handleContentTranslate}
+            hasImages={imageUrls.length > 0}
+          />
+          <ImagesContainer imageUrls={imageUrls} onOcrClick={handleImageOcr} />
         </Grid>
-
         {styledHtml && (
           <Grid item xs={12} md={4}>
-            <Paper elevation={3} sx={{ p: 4, height: "100%" }}>
-              <Typography variant="h6" gutterBottom>
-                OCR Result
-              </Typography>
-              <Box
-                sx={{
-                  p: 2,
-                  border: "1px solid #ddd",
-                  borderRadius: 1,
-                  backgroundColor: "#f8f9fa",
-                  height: "calc(100% - 40px)",
-                  overflow: "auto",
-                }}
-                dangerouslySetInnerHTML={{ __html: styledHtml }}
-              />
-            </Paper>
+            <TranslatedContent styledHtml={styledHtml} />
           </Grid>
         )}
       </Grid>
