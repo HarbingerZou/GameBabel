@@ -37,3 +37,11 @@ export interface OCRResult {
   data: OCRResultData[];
   success: boolean;
 }
+
+export type Language =
+  | "English"
+  | "Chinese"
+  | "Spanish"
+  | "Japanese"
+  | "Franch"
+  | "Russian";
