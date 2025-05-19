@@ -158,15 +158,21 @@ function ImagesContainer({ imageUrls, onOcrClick }: ImagesContainerProps) {
 
 function ArticleHeader({
   article,
-  selectedLanguage,
-  onLanguageChange,
   onTranslate,
 }: {
   article: Article;
-  selectedLanguage: Language;
-  onLanguageChange: (event: any) => void;
-  onTranslate: () => void;
+  onTranslate: (language: Language) => void;
 }) {
+  const [selectedLanguage, setSelectedLanguage] = useState<Language>("English");
+
+  const handleLanguageChange = (event: any) => {
+    setSelectedLanguage(event.target.value);
+  };
+
+  const handleTranslate = () => {
+    onTranslate(selectedLanguage);
+  };
+
   return (
     <Box
       sx={{
@@ -187,7 +193,7 @@ function ArticleHeader({
             id="language-select"
             value={selectedLanguage}
             label="Target Language"
-            onChange={onLanguageChange}
+            onChange={handleLanguageChange}
           >
             <MenuItem value="English">English</MenuItem>
             <MenuItem value="Chinese">Chinese</MenuItem>
@@ -197,7 +203,7 @@ function ArticleHeader({
             <MenuItem value="Russian">Russian</MenuItem>
           </Select>
         </FormControl>
-        <Button variant="contained" onClick={onTranslate}>
+        <Button variant="contained" onClick={handleTranslate}>
           Translate
         </Button>
       </Box>
@@ -206,6 +212,10 @@ function ArticleHeader({
 }
 
 function ArticleMetadata({ article }: { article: Article }) {
+  const formatDate = (date: Date | string) => {
+    return new Date(date).toString();
+  };
+
   return (
     <>
       <Box sx={{ mb: 2 }}>
@@ -222,12 +232,11 @@ function ArticleMetadata({ article }: { article: Article }) {
 
       <Box sx={{ mb: 2 }}>
         <Typography variant="body2" color="text.secondary" gutterBottom>
-          <strong>Created:</strong>{" "}
-          {new Date(article.metadata.crawledAt).toLocaleString()}
+          <strong>Created:</strong> {formatDate(article.metadata.crawledAt)}
         </Typography>
         <Typography variant="body2" color="text.secondary" gutterBottom>
           <strong>Original publication Time:</strong>{" "}
-          {new Date(article.metadata.originalPubTime).toLocaleString()}
+          {formatDate(article.metadata.originalPubTime)}
         </Typography>
       </Box>
     </>
@@ -235,11 +244,59 @@ function ArticleMetadata({ article }: { article: Article }) {
 }
 
 function OriginalContent({ article }: { article: Article }) {
+  const [viewMode, setViewMode] = useState<"rendered" | "raw">("rendered");
+
+  const formatContent = () => {
+    if (viewMode === "rendered") {
+      return <Box dangerouslySetInnerHTML={{ __html: article.content }} />;
+    }
+    return (
+      <Typography
+        variant="body1"
+        component="pre"
+        sx={{
+          whiteSpace: "pre-wrap",
+          wordBreak: "break-word",
+          fontFamily: "monospace",
+          fontSize: "0.875rem",
+        }}
+      >
+        {article.content}
+      </Typography>
+    );
+  };
+
   return (
     <Box>
-      <Typography variant="h6" gutterBottom>
-        Original Content
-      </Typography>
+      <Box
+        sx={{
+          display: "flex",
+          justifyContent: "space-between",
+          alignItems: "center",
+          mb: 2,
+        }}
+      >
+        <Typography variant="h6" gutterBottom>
+          Original Content
+        </Typography>
+        <Box>
+          <Button
+            variant={viewMode === "rendered" ? "contained" : "outlined"}
+            onClick={() => setViewMode("rendered")}
+            size="small"
+            sx={{ mr: 1 }}
+          >
+            Rendered
+          </Button>
+          <Button
+            variant={viewMode === "raw" ? "contained" : "outlined"}
+            onClick={() => setViewMode("raw")}
+            size="small"
+          >
+            Raw HTML
+          </Button>
+        </Box>
+      </Box>
       <Box
         sx={{
           p: 2,
@@ -250,9 +307,7 @@ function OriginalContent({ article }: { article: Article }) {
           overflow: "auto",
         }}
       >
-        <Typography variant="body1" sx={{ whiteSpace: "pre-wrap" }}>
-          {article.content}
-        </Typography>
+        {formatContent()}
         {article.metadata.wordCount && (
           <Typography variant="body2" color="text.secondary" sx={{ mt: 1 }}>
             Word count: {article.metadata.wordCount}
@@ -264,18 +319,65 @@ function OriginalContent({ article }: { article: Article }) {
 }
 
 function TranslatedContent({
-  translations,
-  tabValue,
-  onTabChange,
-  onDeleteTranslation,
-  loading,
+  translations: initialTranslations,
+  onTranslationsUpdate,
 }: {
   translations: Translation[];
-  tabValue: number;
-  onTabChange: (event: React.SyntheticEvent, newValue: number) => void;
-  onDeleteTranslation: (id: string) => void;
-  loading: boolean;
+  onTranslationsUpdate: (translations: Translation[]) => void;
 }) {
+  const [tabValue, setTabValue] = useState(0);
+  const [loading, setLoading] = useState(false);
+  const [translations, setTranslations] = useState(initialTranslations);
+
+  const handleTabChange = (event: React.SyntheticEvent, newValue: number) => {
+    setTabValue(newValue);
+  };
+
+  const handleDeleteTranslation = async (translationId: string) => {
+    if (!confirm("Are you sure you want to delete this translation?")) {
+      return;
+    }
+
+    setLoading(true);
+    try {
+      const translationToDelete = translations.find(
+        (t) => t._id === translationId
+      );
+      if (!translationToDelete) {
+        throw new Error("Translation not found");
+      }
+
+      const response = await fetch(`/api/translation`, {
+        method: "DELETE",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          contentId: translationToDelete.contentId,
+          targetLanguage: translationToDelete.targetLanguage,
+        }),
+      });
+
+      if (response.ok) {
+        const updatedTranslations = translations.filter(
+          (t) => t._id !== translationId
+        );
+        if (tabValue >= updatedTranslations.length) {
+          setTabValue(Math.max(0, updatedTranslations.length - 1));
+        }
+        setTranslations(updatedTranslations);
+        onTranslationsUpdate(updatedTranslations);
+      } else {
+        const error = await response.json();
+        console.error("Failed to delete translation:", error);
+      }
+    } catch (error) {
+      console.error("Error deleting translation:", error);
+    } finally {
+      setLoading(false);
+    }
+  };
+
   const allTranslations = translations.sort(
     (a, b) =>
       new Date(b.metadata.translatedAt).getTime() -
@@ -298,7 +400,9 @@ function TranslatedContent({
             variant="outlined"
             color="error"
             size="small"
-            onClick={() => onDeleteTranslation(allTranslations[tabValue]._id)}
+            onClick={() =>
+              handleDeleteTranslation(allTranslations[tabValue]._id)
+            }
             disabled={loading}
           >
             Delete Translation
@@ -308,7 +412,7 @@ function TranslatedContent({
       <Box sx={{ borderBottom: 1, borderColor: "divider" }}>
         <Tabs
           value={tabValue}
-          onChange={onTabChange}
+          onChange={handleTabChange}
           aria-label="translation tabs"
           variant="scrollable"
           scrollButtons="auto"
@@ -369,74 +473,9 @@ const ArticleContent = ({
   hasImages,
   onTranslationsUpdate,
 }: ArticleContentProps) => {
-  const [tabValue, setTabValue] = useState(0);
-  const [selectedLanguage, setSelectedLanguage] = useState<Language>("English");
-  const [loading, setLoading] = useState(false);
-
-  const handleTabChange = (event: React.SyntheticEvent, newValue: number) => {
-    setTabValue(newValue);
-  };
-
-  const handleLanguageChange = (event: any) => {
-    setSelectedLanguage(event.target.value);
-  };
-
-  const handleTranslate = async () => {
-    onTranslateClick(selectedLanguage);
-  };
-
-  const handleDeleteTranslation = async (translationId: string) => {
-    if (!confirm("Are you sure you want to delete this translation?")) {
-      return;
-    }
-
-    setLoading(true);
-    try {
-      const translationToDelete = translation.find(
-        (t) => t._id === translationId
-      );
-      if (!translationToDelete) {
-        throw new Error("Translation not found");
-      }
-
-      const response = await fetch(`/api/translation`, {
-        method: "DELETE",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({
-          contentId: article._id,
-          targetLanguage: translationToDelete.targetLanguage,
-        }),
-      });
-
-      if (response.ok) {
-        const updatedTranslations = translation.filter(
-          (t) => t._id !== translationId
-        );
-        if (tabValue >= updatedTranslations.length) {
-          setTabValue(Math.max(0, updatedTranslations.length - 1));
-        }
-        onTranslationsUpdate(updatedTranslations);
-      } else {
-        const error = await response.json();
-        console.error("Failed to delete translation:", error);
-      }
-    } catch (error) {
-      console.error("Error deleting translation:", error);
-    } finally {
-      setLoading(false);
-    }
-  };
-
   return (
     <Paper elevation={3} sx={{ p: 4 }}>
-      <ArticleHeader
-        article={article}
-        selectedLanguage={selectedLanguage}
-        onLanguageChange={handleLanguageChange}
-        onTranslate={handleTranslate}
-      />
+      <ArticleHeader article={article} onTranslate={onTranslateClick} />
 
       <ArticleMetadata article={article} />
 
@@ -449,10 +488,7 @@ const ArticleContent = ({
         <Grid item xs={12} md={6}>
           <TranslatedContent
             translations={translation}
-            tabValue={tabValue}
-            onTabChange={handleTabChange}
-            onDeleteTranslation={handleDeleteTranslation}
-            loading={loading}
+            onTranslationsUpdate={onTranslationsUpdate}
           />
         </Grid>
       </Grid>
