@@ -20,7 +20,8 @@ import {
 import { GetServerSideProps } from "next";
 import { Article, OCRResult, Translation, Language } from "../../common.type";
 import { extractImageUrls } from "../../utils/image_processing";
-
+import parse from "html-react-parser";
+import React from "react";
 interface ArticlePageProps {
   article: Article;
   translation: Translation[];
@@ -248,7 +249,7 @@ function OriginalContent({ article }: { article: Article }) {
 
   const formatContent = () => {
     if (viewMode === "rendered") {
-      return <Box dangerouslySetInnerHTML={{ __html: article.content }} />;
+      return <Box>{parse(article.content)}</Box>;
     }
     return (
       <Typography
@@ -438,11 +439,7 @@ function TranslatedContent({
               overflow: "auto",
             }}
           >
-            <Box
-              dangerouslySetInnerHTML={{
-                __html: trans.translatedContent,
-              }}
-            />
+            <Box>{parse(trans.translatedContent)}</Box>
           </Box>
         </TabPanel>
       ))}
@@ -528,17 +525,101 @@ function Loading() {
   );
 }
 
+interface ImageAnalysisContainerProps {
+  imageUrls: string[];
+  articleId: string;
+}
+
+const ImageAnalysisContainer = React.memo(
+  ({ imageUrls, articleId }: ImageAnalysisContainerProps) => {
+    const [loading, setLoading] = useState(false);
+    const [error, setError] = useState<string | null>(null);
+    const [styledHtml, setStyledHtml] = useState<string | null>(null);
+
+    const handleImageOcr = async (imageUrl: string) => {
+      setLoading(true);
+      try {
+        const parseWithDS = true;
+        const response = await fetch(`/api/image-ocr`, {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify({
+            articleId: articleId,
+            imageUrl: imageUrl,
+            parseWithDS: parseWithDS,
+          }),
+        });
+        if (response.status === 200) {
+          const ocrResult: OCRResult & { structuredHtml?: string } =
+            await response.json();
+          if (parseWithDS) {
+            setStyledHtml(ocrResult.structuredHtml || "");
+          } else {
+            setStyledHtml(ocrResult.data.map((t) => t.text).join("\n"));
+          }
+        } else {
+          setError("Failed to process image");
+        }
+      } catch (err) {
+        console.error("Error processing image:", err);
+        setError("Failed to process image");
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    if (loading) {
+      return <Loading />;
+    }
+
+    if (error) {
+      return (
+        <Box sx={{ mt: 4 }}>
+          <Typography color="error">{error}</Typography>
+        </Box>
+      );
+    }
+
+    return (
+      <Grid container spacing={3}>
+        <Grid item xs={12}>
+          <ImagesContainer imageUrls={imageUrls} onOcrClick={handleImageOcr} />
+        </Grid>
+        {styledHtml && (
+          <Grid item xs={12}>
+            <Paper elevation={3} sx={{ p: 4 }}>
+              <Typography variant="h6" gutterBottom>
+                OCR Result
+              </Typography>
+              <Box
+                sx={{
+                  p: 2,
+                  border: "1px solid #ddd",
+                  borderRadius: 1,
+                  backgroundColor: "#f8f9fa",
+                }}
+              >
+                {parse(styledHtml)}
+              </Box>
+            </Paper>
+          </Grid>
+        )}
+      </Grid>
+    );
+  }
+);
+
 export default function ArticlePage({
   article: initialArticle,
   translation: initialTranslation,
 }: ArticlePageProps) {
-  const router = useRouter();
   const [article, setArticle] = useState<Article>(initialArticle);
   const [translations, setTranslations] =
     useState<Translation[]>(initialTranslation);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const [styledHtml, setStyledHtml] = useState<string | null>(null);
   const [imageUrls, setImageUrls] = useState<string[]>([]);
 
   useEffect(() => {
@@ -547,40 +628,6 @@ export default function ArticlePage({
       setImageUrls(urls);
     }
   }, [article]);
-
-  const handleImageOcr = async (imageUrl: string) => {
-    setLoading(true);
-    try {
-      const parseWithDS = true;
-      const response = await fetch(`/api/image-ocr`, {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({
-          articleId: article._id,
-          imageUrl: imageUrl,
-          parseWithDS: parseWithDS,
-        }),
-      });
-      if (response.status === 200) {
-        const ocrResult: OCRResult & { structuredHtml?: string } =
-          await response.json();
-        if (parseWithDS) {
-          setStyledHtml(ocrResult.structuredHtml || "");
-        } else {
-          setStyledHtml(ocrResult.data.map((t) => t.text).join("\n"));
-        }
-      } else {
-        setError("Failed to process image");
-      }
-    } catch (err) {
-      console.error("Error processing image:", err);
-      setError("Failed to process image");
-    } finally {
-      setLoading(false);
-    }
-  };
 
   const handleContentTranslate = async (targetLanguage: string) => {
     setLoading(true);
@@ -645,26 +692,13 @@ export default function ArticlePage({
             hasImages={imageUrls.length > 0}
             onTranslationsUpdate={setTranslations}
           />
-          <ImagesContainer imageUrls={imageUrls} onOcrClick={handleImageOcr} />
         </Grid>
-        {styledHtml && (
-          <Grid item xs={12}>
-            <Paper elevation={3} sx={{ p: 4 }}>
-              <Typography variant="h6" gutterBottom>
-                OCR Result
-              </Typography>
-              <Box
-                sx={{
-                  p: 2,
-                  border: "1px solid #ddd",
-                  borderRadius: 1,
-                  backgroundColor: "#f8f9fa",
-                }}
-                dangerouslySetInnerHTML={{ __html: styledHtml }}
-              />
-            </Paper>
-          </Grid>
-        )}
+        <Grid item xs={12}>
+          <ImageAnalysisContainer
+            imageUrls={imageUrls}
+            articleId={article._id}
+          />
+        </Grid>
       </Grid>
     </Container>
   );
