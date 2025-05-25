@@ -26,7 +26,7 @@ export default async function handler(
       return res.status(400).json({ error: "Missing required fields" });
     }
 
-    const article = await getArticle(articleId);
+    const article: Article = await getArticle(articleId);
     const imageUrls: string[] = extractImageUrls(article.content);
     console.log("Found image URLs:", imageUrls);
 
