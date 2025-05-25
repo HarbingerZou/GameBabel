@@ -23,7 +23,7 @@ services:
     build:
       context: ./image-ocr
       dockerfile: Dockerfile
-    container_name: image-ocr
+    container_name: translayze-image-ocr
     ports:
       - "8001:3000"
     environment:
@@ -34,7 +34,7 @@ services:
     build:
       context: ./ds-services
       dockerfile: Dockerfile
-    container_name: ds-services
+    container_name: translayze-ds-services
     ports:
       - "8002:3000"
     environment:
@@ -45,7 +45,7 @@ services:
     build:
       context: ./crawler
       dockerfile: Dockerfile
-    container_name: crawler
+    container_name: translayze-crawler
     ports:
       - "8003:3000"
     environment:
@@ -56,7 +56,7 @@ services:
     build:
       context: ./data-persistence
       dockerfile: Dockerfile
-    container_name: data-persistence
+    container_name: translayze-data-persistence
     ports:
       - "8004:3000"
     environment:

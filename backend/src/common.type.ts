@@ -14,12 +14,25 @@ export interface Article {
   };
 }
 
+export interface ProcessedContent {
+  _id: string;
+  originalContentId: string;
+  content: string;
+  language: string;
+  status: "pending" | "success" | "failed";
+  metadata: {
+    processedAt: Date;
+    wordCount?: number;
+    processingVersion: string;
+  };
+}
+
 export interface Translation {
   _id: string;
-  contentId: string;
+  processedContentId: string;
   targetLanguage: string;
   translatedContent: string;
-  status: string;
+  status: "pending" | "success" | "failed";
   metadata: {
     translatedAt: Date;
     translationProvider: string;
@@ -43,5 +56,5 @@ export type Language =
   | "Chinese"
   | "Spanish"
   | "Japanese"
-  | "Franch"
+  | "French"
   | "Russian";

@@ -10,9 +10,9 @@ export default async function handler(
 ) {
   if (req.method === "DELETE") {
     try {
-      const { contentId, targetLanguage } = req.body;
+      const { processedContentId, targetLanguage } = req.body;
 
-      if (!contentId || !targetLanguage) {
+      if (!processedContentId || !targetLanguage) {
         return res.status(400).json({
           error: "Missing required fields",
           details: "contentId and targetLanguage are required",
@@ -20,7 +20,7 @@ export default async function handler(
       }
 
       const deleteResponse = await fetch(
-        `${DATA_PERSISTENCE_URL}/api/content/${contentId}/translations/${targetLanguage}`,
+        `${DATA_PERSISTENCE_URL}/api/translation/${processedContentId}/${targetLanguage}`,
         {
           method: "DELETE",
           headers: {
