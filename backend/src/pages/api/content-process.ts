@@ -168,14 +168,22 @@ async function storeProcessedContent(
   language: string
 ): Promise<void> {
   try {
+    // Get the original article to get required fields
+    const article = await getArticle(contentId);
+
     const response = await axios.post(
       `${DATA_PERSISTENCE_URL}/api/processed-content/${contentId}`,
       {
+        title: article.title,
+        author: article.author,
+        url: article.url,
         content: processedContent,
         language: language,
+        source: article.source,
         status: "pending",
         metadata: {
           processedAt: new Date(),
+          wordCount: processedContent.split(/\s+/).length,
           processingVersion: 1,
         },
       }

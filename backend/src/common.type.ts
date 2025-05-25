@@ -17,13 +17,17 @@ export interface Article {
 export interface ProcessedContent {
   _id: string;
   originalContentId: string;
+  title: string;
+  author: string;
+  url: string;
   content: string;
   language: string;
+  source: string;
   status: "pending" | "success" | "failed";
   metadata: {
     processedAt: Date;
     wordCount?: number;
-    processingVersion: string;
+    processingVersion: number;
   };
 }
 
