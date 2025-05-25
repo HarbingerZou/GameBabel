@@ -62,7 +62,7 @@ async function getTranslation(
   targetLanguage: string
 ) {
   const response = await axios.get(
-    `${DATA_PERSISTENCE_URL}/api/translations/${processedContentId}/${targetLanguage}`
+    `${DATA_PERSISTENCE_URL}/api/translation/${processedContentId}/${targetLanguage}`
   );
   return response.data;
 }
@@ -104,7 +104,7 @@ async function storeTranslation(
 ): Promise<void> {
   try {
     const response = await axios.post(
-      `${DATA_PERSISTENCE_URL}/api/translations/${processedContentId}`,
+      `${DATA_PERSISTENCE_URL}/api/translation/${processedContentId}`,
       {
         targetLanguage,
         translatedContent,
