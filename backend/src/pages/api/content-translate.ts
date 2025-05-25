@@ -17,14 +17,14 @@ export default async function handler(
   }
 
   try {
-    const { articleId, targetLanguage = "English" } = req.body;
+    const { processedContentId, targetLanguage = "English" } = req.body;
 
-    if (!articleId) {
+    if (!processedContentId) {
       return res.status(400).json({ error: "Missing required fields" });
     }
 
     // Get the processed content
-    const processedContent = await getProcessedContent(articleId);
+    const processedContent = await getProcessedContent(processedContentId);
     if (!processedContent) {
       return res.status(404).json({ error: "Processed content not found" });
     }
@@ -42,10 +42,12 @@ export default async function handler(
       translatedHtml
     );
 
+    const translationResponse = await getTranslation(
+      processedContent._id,
+      targetLanguage
+    );
     // Return the translated content
-    return res.status(200).json({
-      translatedHtml,
-    });
+    return res.status(200).json(translationResponse);
   } catch (error) {
     console.error("Error translating content:", error);
     return res.status(500).json({
@@ -55,10 +57,20 @@ export default async function handler(
   }
 }
 
+async function getTranslation(
+  processedContentId: string,
+  targetLanguage: string
+) {
+  const response = await axios.get(
+    `${DATA_PERSISTENCE_URL}/api/translations/${processedContentId}/${targetLanguage}`
+  );
+  return response.data;
+}
+
 async function getProcessedContent(contentId: string) {
   try {
     const response = await axios.get(
-      `${DATA_PERSISTENCE_URL}/api/processed-content/${contentId}`
+      `${DATA_PERSISTENCE_URL}/api/processed-content/id/${contentId}`
     );
     return response.data;
   } catch (error) {

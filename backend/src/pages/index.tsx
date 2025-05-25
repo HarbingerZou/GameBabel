@@ -13,17 +13,22 @@ import {
   Button,
   TextField,
   CircularProgress,
+  Chip,
 } from "@mui/material";
 import { useRouter } from "next/router";
 import axios from "axios";
-import { Article } from "../common.type";
+import { Article, ProcessedContent } from "../common.type";
 import { GetServerSideProps } from "next";
 
 interface HomeProps {
   initialArticles: Article[];
+  processedContents: { [key: string]: ProcessedContent };
 }
 
-export default function Home({ initialArticles }: HomeProps) {
+export default function Home({
+  initialArticles,
+  processedContents,
+}: HomeProps) {
   const router = useRouter();
   const [articles, setArticles] = useState<Article[]>(initialArticles);
   const [newUrl, setNewUrl] = useState("");
@@ -53,6 +58,10 @@ export default function Home({ initialArticles }: HomeProps) {
 
   const handleViewArticle = (id: string) => {
     router.push(`/article/${id}`);
+  };
+
+  const handleViewProcessedArticle = (id: string) => {
+    router.push(`/processed-article/${id}`);
   };
 
   return (
@@ -96,7 +105,9 @@ export default function Home({ initialArticles }: HomeProps) {
                 <TableCell>Title</TableCell>
                 <TableCell>URL</TableCell>
                 <TableCell>Created At</TableCell>
-                <TableCell>Actions</TableCell>
+                <TableCell>Processed Status</TableCell>
+                <TableCell>View Article</TableCell>
+                <TableCell>View Processed</TableCell>
               </TableRow>
             </TableHead>
             <TableBody>
@@ -108,6 +119,22 @@ export default function Home({ initialArticles }: HomeProps) {
                     {new Date(article.metadata.crawledAt).toLocaleString()}
                   </TableCell>
                   <TableCell>
+                    {processedContents[article._id] ? (
+                      <Chip
+                        label={processedContents[article._id].status}
+                        color={
+                          processedContents[article._id].status === "success"
+                            ? "success"
+                            : processedContents[article._id].status === "failed"
+                            ? "error"
+                            : "warning"
+                        }
+                      />
+                    ) : (
+                      <Chip label="Not Processed" color="default" />
+                    )}
+                  </TableCell>
+                  <TableCell>
                     <Button
                       variant="outlined"
                       size="small"
@@ -115,6 +142,21 @@ export default function Home({ initialArticles }: HomeProps) {
                     >
                       View Article
                     </Button>
+                  </TableCell>
+                  <TableCell>
+                    {processedContents[article._id] && (
+                      <Button
+                        variant="outlined"
+                        size="small"
+                        onClick={() =>
+                          handleViewProcessedArticle(
+                            processedContents[article._id]._id
+                          )
+                        }
+                      >
+                        View Processed
+                      </Button>
+                    )}
                   </TableCell>
                 </TableRow>
               ))}
@@ -138,9 +180,33 @@ export const getServerSideProps: GetServerSideProps = async () => {
     }
 
     const data = await response.json();
+    const articles = data.contents;
+
+    // Fetch processed content for each article
+    const processedContents: { [key: string]: ProcessedContent } = {};
+    await Promise.all(
+      articles.map(async (article: Article) => {
+        try {
+          const processedResponse = await fetch(
+            `${DATA_PERSISTENCE_URL}/api/processed-content/${article._id}`
+          );
+          if (processedResponse.ok) {
+            const processedContent = await processedResponse.json();
+            processedContents[article._id] = processedContent;
+          }
+        } catch (error) {
+          console.error(
+            `Error fetching processed content for article ${article._id}:`,
+            error
+          );
+        }
+      })
+    );
+
     return {
       props: {
-        initialArticles: data.contents,
+        initialArticles: articles,
+        processedContents,
       },
     };
   } catch (error) {
@@ -148,6 +214,7 @@ export const getServerSideProps: GetServerSideProps = async () => {
     return {
       props: {
         initialArticles: [],
+        processedContents: {},
       },
     };
   }

@@ -1,5 +1,4 @@
-import { useState, useEffect } from "react";
-import { useRouter } from "next/router";
+import { useEffect, useState } from "react";
 import {
   Box,
   Container,
@@ -18,32 +17,13 @@ import {
   InputLabel,
 } from "@mui/material";
 import { GetServerSideProps } from "next";
-import { Article, OCRResult, Translation, Language } from "../../common.type";
-import { extractImageUrls } from "../../utils/image_processing";
+import { Translation, Language, ProcessedContent } from "../../common.type";
 import parse from "html-react-parser";
 import React from "react";
-interface ArticlePageProps {
-  article: Article;
-  translation: Translation[];
-}
 
-interface ImageDisplayProps {
-  url: string;
-  index: number;
-  onOcrClick: (url: string) => void;
-}
-
-interface ImagesContainerProps {
-  imageUrls: string[];
-  onOcrClick: (url: string) => void;
-}
-
-interface ArticleContentProps {
-  article: Article;
-  translation: Translation[];
-  onTranslateClick: (language: string) => void;
-  hasImages: boolean;
-  onTranslationsUpdate: (translations: Translation[]) => void;
+interface ProcessedArticlePageProps {
+  processedContent: ProcessedContent;
+  translations: Translation[];
 }
 
 interface TabPanelProps {
@@ -68,100 +48,11 @@ function TabPanel(props: TabPanelProps) {
   );
 }
 
-function ImageDisplay({ url, index, onOcrClick }: ImageDisplayProps) {
-  const imageUrl = url.startsWith("//") ? `https:${url}` : url;
-
-  return (
-    <Box
-      sx={{
-        position: "relative",
-        width: "200px",
-        height: "200px",
-        display: "flex",
-        flexDirection: "column",
-        alignItems: "center",
-        gap: 1,
-        p: 1,
-        border: "1px solid #eee",
-        borderRadius: 1,
-        backgroundColor: "#fafafa",
-      }}
-    >
-      <Box
-        sx={{
-          flex: 1,
-          width: "100%",
-          display: "flex",
-          alignItems: "center",
-          justifyContent: "center",
-          overflow: "hidden",
-          cursor: "pointer",
-        }}
-        onClick={() =>
-          window.open(
-            `/api/proxy-image?url=${encodeURIComponent(imageUrl)}`,
-            "_blank"
-          )
-        }
-      >
-        <img
-          src={`/api/proxy-image?url=${encodeURIComponent(imageUrl)}`}
-          alt={`Article image ${index + 1}`}
-          style={{
-            maxWidth: "100%",
-            maxHeight: "100%",
-            objectFit: "contain",
-          }}
-        />
-      </Box>
-      <Button
-        variant="outlined"
-        size="small"
-        onClick={() => onOcrClick(imageUrl)}
-        fullWidth
-      >
-        OCR
-      </Button>
-    </Box>
-  );
-}
-
-function ImagesContainer({ imageUrls, onOcrClick }: ImagesContainerProps) {
-  if (imageUrls.length === 0) return null;
-
-  return (
-    <Box sx={{ mt: 3 }}>
-      <Typography variant="h6" gutterBottom>
-        Found Images
-      </Typography>
-      <Box
-        sx={{
-          display: "grid",
-          gridTemplateColumns: "repeat(auto-fill, minmax(200px, 1fr))",
-          gap: 2,
-          p: 2,
-          backgroundColor: "#f5f5f5",
-          borderRadius: 1,
-        }}
-      >
-        {imageUrls.map((url, index) => (
-          <ImageDisplay
-            key={index}
-            url={url}
-            index={index}
-            onOcrClick={onOcrClick}
-          />
-        ))}
-      </Box>
-    </Box>
-  );
-}
-
-function ArticleHeader({
-  article,
+function ProcessedContentHeader({
+  processedContent,
   onTranslate,
 }: {
-  article: Article;
+  processedContent: ProcessedContent;
   onTranslate: (language: Language) => void;
 }) {
   const [selectedLanguage, setSelectedLanguage] = useState<Language>("English");
@@ -183,9 +74,27 @@ function ArticleHeader({
         mb: 2,
       }}
     >
-      <Typography variant="h4" component="h1">
-        {article.title}
-      </Typography>
+      <Box>
+        <Typography variant="h4" component="h1" gutterBottom>
+          Processed Content
+        </Typography>
+        <Box sx={{ display: "flex", gap: 1, alignItems: "center" }}>
+          <Chip
+            label={`Status: ${processedContent.status}`}
+            color={
+              processedContent.status === "success"
+                ? "success"
+                : processedContent.status === "failed"
+                ? "error"
+                : "warning"
+            }
+          />
+          <Typography variant="body2" color="text.secondary">
+            Processed at:{" "}
+            {new Date(processedContent.metadata.processedAt).toLocaleString()}
+          </Typography>
+        </Box>
+      </Box>
       <Box sx={{ display: "flex", gap: 2, alignItems: "center" }}>
         <FormControl sx={{ minWidth: 200 }}>
           <InputLabel id="language-select-label">Target Language</InputLabel>
@@ -200,7 +109,7 @@ function ArticleHeader({
             <MenuItem value="Chinese">Chinese</MenuItem>
             <MenuItem value="Spanish">Spanish</MenuItem>
             <MenuItem value="Japanese">Japanese</MenuItem>
-            <MenuItem value="Franch">French</MenuItem>
+            <MenuItem value="French">French</MenuItem>
             <MenuItem value="Russian">Russian</MenuItem>
           </Select>
         </FormControl>
@@ -212,44 +121,16 @@ function ArticleHeader({
   );
 }
 
-function ArticleMetadata({ article }: { article: Article }) {
-  const formatDate = (date: Date | string) => {
-    return new Date(date).toString();
-  };
-
-  return (
-    <>
-      <Box sx={{ mb: 2 }}>
-        <Typography variant="body1" gutterBottom>
-          <strong>Author:</strong> {article.author}
-        </Typography>
-        <Typography variant="body1" gutterBottom>
-          <strong>Source:</strong> {article.source}
-        </Typography>
-        <Typography variant="body1" gutterBottom>
-          <strong>URL:</strong> {article.url}
-        </Typography>
-      </Box>
-
-      <Box sx={{ mb: 2 }}>
-        <Typography variant="body2" color="text.secondary" gutterBottom>
-          <strong>Created:</strong> {formatDate(article.metadata.crawledAt)}
-        </Typography>
-        <Typography variant="body2" color="text.secondary" gutterBottom>
-          <strong>Original publication Time:</strong>{" "}
-          {formatDate(article.metadata.originalPubTime)}
-        </Typography>
-      </Box>
-    </>
-  );
-}
-
-function OriginalContent({ article }: { article: Article }) {
+function ProcessedContentDisplay({
+  processedContent,
+}: {
+  processedContent: ProcessedContent;
+}) {
   const [viewMode, setViewMode] = useState<"rendered" | "raw">("rendered");
 
   const formatContent = () => {
     if (viewMode === "rendered") {
-      return <Box>{parse(article.content)}</Box>;
+      return <Box>{parse(processedContent.content)}</Box>;
     }
     return (
       <Typography
@@ -262,7 +143,7 @@ function OriginalContent({ article }: { article: Article }) {
           fontSize: "0.875rem",
         }}
       >
-        {article.content}
+        {processedContent.content}
       </Typography>
     );
   };
@@ -278,7 +159,7 @@ function OriginalContent({ article }: { article: Article }) {
         }}
       >
         <Typography variant="h6" gutterBottom>
-          Original Content
+          Content
         </Typography>
         <Box>
           <Button
@@ -309,9 +190,9 @@ function OriginalContent({ article }: { article: Article }) {
         }}
       >
         {formatContent()}
-        {article.metadata.wordCount && (
+        {processedContent.metadata.wordCount && (
           <Typography variant="body2" color="text.secondary" sx={{ mt: 1 }}>
-            Word count: {article.metadata.wordCount}
+            Word count: {processedContent.metadata.wordCount}
           </Typography>
         )}
       </Box>
@@ -341,21 +222,13 @@ function TranslatedContent({
 
     setLoading(true);
     try {
-      const translationToDelete = translations.find(
-        (t) => t._id === translationId
-      );
-      if (!translationToDelete) {
-        throw new Error("Translation not found");
-      }
-
       const response = await fetch(`/api/translation`, {
         method: "DELETE",
         headers: {
           "Content-Type": "application/json",
         },
         body: JSON.stringify({
-          processedContentId: translationToDelete.processedContentId,
-          targetLanguage: translationToDelete.targetLanguage,
+          translationId,
         }),
       });
 
@@ -395,7 +268,7 @@ function TranslatedContent({
           mb: 2,
         }}
       >
-        <Typography variant="h6">Translated Content</Typography>
+        <Typography variant="h6">Translations</Typography>
         {allTranslations.length > 0 && (
           <Button
             variant="outlined"
@@ -463,42 +336,10 @@ function TranslatedContent({
   );
 }
 
-const ArticleContent = ({
-  article,
-  translation,
-  onTranslateClick,
-  hasImages,
-  onTranslationsUpdate,
-}: ArticleContentProps) => {
-  return (
-    <Paper elevation={3} sx={{ p: 4 }}>
-      <ArticleHeader article={article} onTranslate={onTranslateClick} />
-
-      <ArticleMetadata article={article} />
-
-      <Divider sx={{ my: 3 }} />
-
-      <Grid container spacing={3}>
-        <Grid item xs={12} md={6}>
-          <OriginalContent article={article} />
-        </Grid>
-        <Grid item xs={12} md={6}>
-          <TranslatedContent
-            translations={translation}
-            onTranslationsUpdate={onTranslationsUpdate}
-          />
-        </Grid>
-      </Grid>
-    </Paper>
-  );
-};
-
 function Loading() {
   const [seconds, setSeconds] = useState(0);
-  const [mounted, setMounted] = useState(false);
 
   useEffect(() => {
-    setMounted(true);
     const interval = setInterval(() => {
       setSeconds((seconds) => seconds + 1);
     }, 1000);
@@ -518,118 +359,25 @@ function Loading() {
       >
         <CircularProgress />
         <Typography variant="body1" sx={{ ml: 2 }}>
-          Loading... {mounted ? seconds : 0} seconds
+          Loading... {seconds} seconds
         </Typography>
       </Box>
     </Container>
   );
 }
 
-interface ImageAnalysisContainerProps {
-  imageUrls: string[];
-  articleId: string;
-}
-
-const ImageAnalysisContainer = React.memo(
-  ({ imageUrls, articleId }: ImageAnalysisContainerProps) => {
-    const [loading, setLoading] = useState(false);
-    const [error, setError] = useState<string | null>(null);
-    const [styledHtml, setStyledHtml] = useState<string | null>(null);
-
-    const handleImageOcr = async (imageUrl: string) => {
-      setLoading(true);
-      try {
-        const parseWithDS = true;
-        const response = await fetch(`/api/image-ocr`, {
-          method: "POST",
-          headers: {
-            "Content-Type": "application/json",
-          },
-          body: JSON.stringify({
-            articleId: articleId,
-            imageUrl: imageUrl,
-            parseWithDS: parseWithDS,
-          }),
-        });
-        if (response.status === 200) {
-          const ocrResult: OCRResult & { structuredHtml?: string } =
-            await response.json();
-          if (parseWithDS) {
-            setStyledHtml(ocrResult.structuredHtml || "");
-          } else {
-            setStyledHtml(ocrResult.data.map((t) => t.text).join("\n"));
-          }
-        } else {
-          setError("Failed to process image");
-        }
-      } catch (err) {
-        console.error("Error processing image:", err);
-        setError("Failed to process image");
-      } finally {
-        setLoading(false);
-      }
-    };
-
-    if (loading) {
-      return <Loading />;
-    }
-
-    if (error) {
-      return (
-        <Box sx={{ mt: 4 }}>
-          <Typography color="error">{error}</Typography>
-        </Box>
-      );
-    }
-
-    return (
-      <Grid container spacing={3}>
-        <Grid item xs={12}>
-          <ImagesContainer imageUrls={imageUrls} onOcrClick={handleImageOcr} />
-        </Grid>
-        {styledHtml && (
-          <Grid item xs={12}>
-            <Paper elevation={3} sx={{ p: 4 }}>
-              <Typography variant="h6" gutterBottom>
-                OCR Result
-              </Typography>
-              <Box
-                sx={{
-                  p: 2,
-                  border: "1px solid #ddd",
-                  borderRadius: 1,
-                  backgroundColor: "#f8f9fa",
-                }}
-              >
-                {parse(styledHtml)}
-              </Box>
-            </Paper>
-          </Grid>
-        )}
-      </Grid>
-    );
-  }
-);
-
-export default function ArticlePage({
-  article: initialArticle,
-  translation: initialTranslation,
-}: ArticlePageProps) {
-  const [article, setArticle] = useState<Article>(initialArticle);
+export default function ProcessedArticlePage({
+  processedContent: initialProcessedContent,
+  translations: initialTranslations,
+}: ProcessedArticlePageProps) {
+  const [processedContent] = useState<ProcessedContent>(
+    initialProcessedContent
+  );
   const [translations, setTranslations] =
-    useState<Translation[]>(initialTranslation);
+    useState<Translation[]>(initialTranslations);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const [imageUrls, setImageUrls] = useState<string[]>([]);
 
-  useEffect(() => {
-    if (article?.content) {
-      const urls = extractImageUrls(article.content);
-      setImageUrls(urls);
-    }
-  }, [article]);
-  const handleContentTranslate = async (targetLanguage: string) => {};
-  /*
   const handleContentTranslate = async (targetLanguage: string) => {
     setLoading(true);
     try {
@@ -639,45 +387,33 @@ export default function ArticlePage({
           "Content-Type": "application/json",
         },
         body: JSON.stringify({
-          articleId: article._id,
+          processedContentId: processedContent._id,
           targetLanguage,
         }),
       });
       if (response.status === 200) {
-        const data = await response.json();
-        const newTranslation: Translation = {
-          _id: article._id,
-          contentId: article._id,
-          targetLanguage,
-          translatedContent: data.translatedHtml,
-          status: data.status,
-          metadata: {
-            translatedAt: new Date(),
-            translationProvider: "DeepSeek",
-          },
-        };
+        const newTranslation = await response.json();
         setTranslations((prev) => [...prev, newTranslation]);
       } else {
-        setError("Failed to process content");
+        setError("Failed to translate content");
       }
     } catch (err) {
-      console.error("Error processing content:", err);
-      setError("Failed to process content");
+      console.error("Error translating content:", err);
+      setError("Failed to translate content");
     } finally {
       setLoading(false);
     }
   };
-  */
 
   if (loading) {
     return <Loading />;
   }
 
-  if (error || !article) {
+  if (error || !processedContent) {
     return (
       <Container>
         <Box sx={{ mt: 4 }}>
-          <Typography color="error">{error || "Article not found"}</Typography>
+          <Typography color="error">{error || "Content not found"}</Typography>
         </Box>
       </Container>
     );
@@ -685,23 +421,24 @@ export default function ArticlePage({
 
   return (
     <Container maxWidth="xl">
-      <Grid container spacing={3}>
-        <Grid item xs={12}>
-          <ArticleContent
-            article={article}
-            translation={translations}
-            onTranslateClick={handleContentTranslate}
-            hasImages={imageUrls.length > 0}
-            onTranslationsUpdate={setTranslations}
-          />
+      <Paper elevation={3} sx={{ p: 4 }}>
+        <ProcessedContentHeader
+          processedContent={processedContent}
+          onTranslate={handleContentTranslate}
+        />
+        <Divider sx={{ my: 3 }} />
+        <Grid container spacing={3}>
+          <Grid item xs={12} md={6}>
+            <ProcessedContentDisplay processedContent={processedContent} />
+          </Grid>
+          <Grid item xs={12} md={6}>
+            <TranslatedContent
+              translations={translations}
+              onTranslationsUpdate={setTranslations}
+            />
+          </Grid>
         </Grid>
-        <Grid item xs={12}>
-          <ImageAnalysisContainer
-            imageUrls={imageUrls}
-            articleId={article._id}
-          />
-        </Grid>
-      </Grid>
+      </Paper>
     </Container>
   );
 }
@@ -720,9 +457,9 @@ export const getServerSideProps: GetServerSideProps = async (context) => {
       process.env.NEXT_PUBLIC_DATA_PERSISTENCE_URL ||
       "http://data-persistence:3000";
 
-    // Fetch article
-    const articleResponse = await fetch(
-      `${DATA_PERSISTENCE_URL}/api/content/${id}`,
+    // Fetch processed content
+    const processedContentResponse = await fetch(
+      `${DATA_PERSISTENCE_URL}/api/processed-content/id/${id}`,
       {
         headers: {
           Accept: "application/json",
@@ -730,20 +467,22 @@ export const getServerSideProps: GetServerSideProps = async (context) => {
       }
     );
 
-    if (!articleResponse.ok) {
-      if (articleResponse.status === 404) {
+    if (!processedContentResponse.ok) {
+      if (processedContentResponse.status === 404) {
         return {
           notFound: true,
         };
       }
-      throw new Error(`Failed to fetch article: ${articleResponse.status}`);
+      throw new Error(
+        `Failed to fetch processed content: ${processedContentResponse.status}`
+      );
     }
 
-    const article = await articleResponse.json();
-    /*
-    // Fetch all translations for this content
-    const translationResponse = await fetch(
-      `${DATA_PERSISTENCE_URL}/api/content/${id}/translations`,
+    const processedContent = await processedContentResponse.json();
+
+    // Fetch translations
+    const translationsResponse = await fetch(
+      `${DATA_PERSISTENCE_URL}/api/translation/${processedContent._id}`,
       {
         headers: {
           Accept: "application/json",
@@ -752,20 +491,19 @@ export const getServerSideProps: GetServerSideProps = async (context) => {
     );
 
     let translations = [];
-    if (translationResponse.ok) {
-      const translationData = await translationResponse.json();
-      translations = translationData.translations || [];
+    if (translationsResponse.ok) {
+      const translationsData = await translationsResponse.json();
+      translations = translationsData.translations || [];
     }
 
-    console.log("translations", translations);*/
     return {
       props: {
-        article,
-        translation: [],
+        processedContent,
+        translations,
       },
     };
   } catch (error) {
-    console.error("Error fetching article:", error);
+    console.error("Error fetching content:", error);
     return {
       notFound: true,
     };
