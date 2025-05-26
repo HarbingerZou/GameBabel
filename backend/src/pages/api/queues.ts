@@ -11,8 +11,17 @@ export default async function handler(
 
   try {
     const queueNames = queueManager.getQueueNames();
+    const queueStats = await Promise.all(
+      queueNames.map(async (name) => {
+        const stats = await queueManager.getQueueStats(name);
+        return {
+          name,
+          stats,
+        };
+      })
+    );
 
-    return res.status(200).json(queueNames);
+    return res.status(200).json(queueStats);
   } catch (error) {
     console.error("Error getting queues:", error);
     return res.status(500).json({

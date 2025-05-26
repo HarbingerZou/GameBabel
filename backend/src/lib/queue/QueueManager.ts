@@ -1,5 +1,8 @@
 import { JobQueue, JobData, JobResult } from "./JobQueue";
 
+// Global variable to store the singleton instance
+let globalQueueManager: QueueManager | null = null;
+
 class QueueManager {
   private static instance: QueueManager;
   private queues: Map<string, JobQueue<any, any>>;
@@ -9,10 +12,10 @@ class QueueManager {
   }
 
   public static getInstance(): QueueManager {
-    if (!QueueManager.instance) {
-      QueueManager.instance = new QueueManager();
+    if (!globalQueueManager) {
+      globalQueueManager = new QueueManager();
     }
-    return QueueManager.instance;
+    return globalQueueManager;
   }
 
   public getQueueNames(): string[] {

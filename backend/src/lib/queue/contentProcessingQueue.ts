@@ -54,7 +54,6 @@ async function processImages(
       console.error(`Failed to process image ${imageUrl}:`, error);
     }
   }
-  console.log(results);
   return results;
 }
 
