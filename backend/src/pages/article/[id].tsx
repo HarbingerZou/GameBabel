@@ -225,6 +225,32 @@ const ImageAnalysisContainer = React.memo(
 );
 
 function ArticleHeader({ article, onProcess }: ArticleHeaderProps) {
+  const handleQueueProcess = async () => {
+    try {
+      const response = await fetch("/api/content-process/queue", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          articleId: article._id,
+        }),
+      });
+
+      if (response.ok) {
+        const data = await response.json();
+        alert(
+          `Job added to queue with ID: ${data.jobId}. Queue name: content-processing`
+        );
+      } else {
+        alert("Failed to add job to queue");
+      }
+    } catch (error) {
+      console.error("Error queueing content process:", error);
+      alert("Failed to add job to queue");
+    }
+  };
+
   return (
     <Box
       sx={{
@@ -237,9 +263,14 @@ function ArticleHeader({ article, onProcess }: ArticleHeaderProps) {
       <Typography variant="h4" component="h1">
         {article.title}
       </Typography>
-      <Button variant="contained" onClick={onProcess}>
-        Process Content
-      </Button>
+      <Box sx={{ display: "flex", gap: 2 }}>
+        <Button variant="outlined" onClick={handleQueueProcess}>
+          Queue Process
+        </Button>
+        <Button variant="contained" onClick={onProcess}>
+          Process Content
+        </Button>
+      </Box>
     </Box>
   );
 }

@@ -1,7 +1,7 @@
 import type { NextApiRequest, NextApiResponse } from "next";
 import axios from "axios";
-import type { Article, OCRResult, OCRResultData } from "../../common.type";
-import { extractImageUrls } from "../../utils/image_processing";
+import type { Article, OCRResult, OCRResultData } from "../../../common.type";
+import { extractImageUrls } from "../../../utils/image_processing";
 
 const OCR_SERVICE_URL =
   process.env.NEXT_PUBLIC_OCR_URL || "http://localhost:8001";

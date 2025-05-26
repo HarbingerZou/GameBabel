@@ -1,6 +1,6 @@
 import type { NextApiRequest, NextApiResponse } from "next";
 import axios from "axios";
-import type { Language, ProcessedContent } from "../../common.type";
+import type { Language, ProcessedContent } from "../../../common.type";
 
 const DS_SERVICE_URL =
   process.env.NEXT_PUBLIC_DS_URL || "http://localhost:3001";

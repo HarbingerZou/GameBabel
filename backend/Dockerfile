@@ -1,5 +1,8 @@
 FROM node:18-alpine
 
+# Install Redis CLI tools
+RUN apk add --no-cache redis
+
 WORKDIR /app
 
 COPY package*.json ./

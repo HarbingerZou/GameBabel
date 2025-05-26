@@ -13,11 +13,24 @@ services:
       - "3001:3000"
     environment:
       - NODE_ENV=production
+      - REDIS_HOST=redis
+      - REDIS_PORT=6379
     restart: unless-stopped
     depends_on:
       - data-persistence
       - crawler
       - ds-services
+      - redis
+
+  redis:
+    image: redis:7-alpine
+    container_name: translayze-redis
+    ports:
+      - "6379:6379"
+    volumes:
+      - redis_data:/data
+    command: redis-server --appendonly yes
+    restart: unless-stopped
 
   image-ocr:
     build:
@@ -65,3 +78,4 @@ services:
 
 volumes:
   mongodb_data:
+  redis_data:

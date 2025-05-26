@@ -65,6 +65,32 @@ function ProcessedContentHeader({
     onTranslate(selectedLanguage);
   };
 
+  const handleQueueProcess = async () => {
+    try {
+      const response = await fetch("/api/content-process/queue", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          articleId: processedContent._id,
+        }),
+      });
+
+      if (response.ok) {
+        const data = await response.json();
+        alert(
+          `Job added to queue with ID: ${data.jobId}. Queue name: content-processing`
+        );
+      } else {
+        alert("Failed to add job to queue");
+      }
+    } catch (error) {
+      console.error("Error queueing content process:", error);
+      alert("Failed to add job to queue");
+    }
+  };
+
   return (
     <Box
       sx={{
@@ -113,6 +139,9 @@ function ProcessedContentHeader({
             <MenuItem value="Russian">Russian</MenuItem>
           </Select>
         </FormControl>
+        <Button variant="outlined" onClick={handleQueueProcess}>
+          Queue Process
+        </Button>
         <Button variant="contained" onClick={handleTranslate}>
           Translate
         </Button>
