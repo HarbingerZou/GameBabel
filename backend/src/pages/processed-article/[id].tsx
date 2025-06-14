@@ -55,7 +55,7 @@ function ProcessedContentHeader({
   processedContent: ProcessedContent;
   onTranslate: (language: Language) => void;
 }) {
-  const [selectedLanguage, setSelectedLanguage] = useState<Language>("English");
+  const [selectedLanguage, setSelectedLanguage] = useState<Language>("english");
 
   const handleLanguageChange = (event: any) => {
     setSelectedLanguage(event.target.value);
@@ -131,12 +131,12 @@ function ProcessedContentHeader({
             label="Target Language"
             onChange={handleLanguageChange}
           >
-            <MenuItem value="English">English</MenuItem>
-            <MenuItem value="Chinese">Chinese</MenuItem>
-            <MenuItem value="Spanish">Spanish</MenuItem>
-            <MenuItem value="Japanese">Japanese</MenuItem>
-            <MenuItem value="French">French</MenuItem>
-            <MenuItem value="Russian">Russian</MenuItem>
+            <MenuItem value="english">English</MenuItem>
+            <MenuItem value="chinese">Chinese</MenuItem>
+            <MenuItem value="spanish">Spanish</MenuItem>
+            <MenuItem value="japanese">Japanese</MenuItem>
+            <MenuItem value="french">French</MenuItem>
+            <MenuItem value="russian">Russian</MenuItem>
           </Select>
         </FormControl>
         <Button variant="outlined" onClick={handleQueueProcess}>

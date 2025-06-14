@@ -56,9 +56,9 @@ export interface OCRResult {
 }
 
 export type Language =
-  | "English"
-  | "Chinese"
-  | "Spanish"
-  | "Japanese"
-  | "French"
-  | "Russian";
+  | "english"
+  | "chinese"
+  | "spanish"
+  | "japanese"
+  | "french"
+  | "russian";
