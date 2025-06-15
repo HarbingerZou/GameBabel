@@ -3,10 +3,12 @@ export interface Article {
   title: string;
   author: string;
   url: string;
+  summary: string;
   content: string;
   source: string;
   language: string;
   metadata: {
+    crawledType: "manual" | "profile_auto" | "search_auto";
     crawledAt: Date;
     wordCount: number;
     hasImages: boolean;
@@ -20,11 +22,13 @@ export interface ProcessedContent {
   title: string;
   author: string;
   url: string;
+  summary: string;
   content: string;
   language: string;
   source: string;
   status: "pending" | "success" | "failed";
   metadata: {
+    crawledType: "manual" | "profile_auto" | "search_auto";
     processedAt: Date;
     wordCount?: number;
     processingVersion: number;
@@ -35,9 +39,11 @@ export interface Translation {
   _id: string;
   processedContentId: string;
   targetLanguage: string;
-  translatedContent: string;
+  summary: string;
+  content: string;
   status: "pending" | "success" | "failed";
   metadata: {
+    crawledType: "manual" | "profile_auto" | "search_auto";
     translatedAt: Date;
     translationProvider: string;
   };

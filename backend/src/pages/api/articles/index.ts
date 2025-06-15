@@ -63,6 +63,7 @@ export default async function handler(
         status: crawledContent.status,
         metadata: {
           crawledAt: new Date(crawledContent.metadata.crawledAt),
+          crawledType: "manual",
           wordCount: crawledContent.metadata.wordCount,
           hasImages: crawledContent.metadata.hasImages,
           originalPubTime: crawledContent.metadata.originalPubTime

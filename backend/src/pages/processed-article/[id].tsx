@@ -341,7 +341,7 @@ function TranslatedContent({
               overflow: "auto",
             }}
           >
-            <Box>{parse(trans.translatedContent)}</Box>
+            <Box>{parse(trans.content)}</Box>
           </Box>
         </TabPanel>
       ))}

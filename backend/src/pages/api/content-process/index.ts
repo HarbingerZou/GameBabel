@@ -65,8 +65,15 @@ export default async function handler(
     } else {
       processedContent = await getCombinedHtml(ocrResults, article.content);
     }
-    // Store the processed content
-    await storeProcessedContent(articleId, processedContent, article.language);
+
+    const { summary, topic } = await getSummary(processedContent);
+    await storeProcessedContent(
+      articleId,
+      processedContent,
+      article.language,
+      summary,
+      topic
+    );
 
     // Return the processed content
     const processedContentResponse = await getProcessedContent(articleId);
@@ -162,14 +169,40 @@ async function getCombinedHtml(
   return combinedHtml;
 }
 
+async function getTopicNames(): Promise<string[]> {
+  const topicsResponse = await axios.get(
+    `${DATA_PERSISTENCE_URL}/api/topic/names`
+  );
+  return topicsResponse.data.map((topic: any) => topic.name);
+}
+
+async function getSummary(
+  content: string
+): Promise<{ summary: string; topic: string }> {
+  console.log("start get summary");
+
+  const topicOptions = await getTopicNames();
+  const summaryResponse = await axios.post(`${DS_SERVICE_URL}/summarize`, {
+    content,
+    topicOptions,
+  });
+
+  return {
+    summary: summaryResponse.data.summary,
+    topic: summaryResponse.data.topic,
+  };
+}
+
 async function storeProcessedContent(
   contentId: string,
   processedContent: string,
-  language: string
+  language: string,
+  summary: string,
+  topic: string
 ): Promise<void> {
   try {
     // Get the original article to get required fields
-    const article = await getArticle(contentId);
+    const article: Article = await getArticle(contentId);
 
     const response = await axios.post(
       `${DATA_PERSISTENCE_URL}/api/processed-content/${contentId}`,
@@ -177,11 +210,14 @@ async function storeProcessedContent(
         title: article.title,
         author: article.author,
         url: article.url,
+        summary: summary,
         content: processedContent,
         language: language,
         source: article.source,
         status: "pending",
         metadata: {
+          topic: topic,
+          crawledType: article.metadata.crawledType,
           processedAt: new Date(),
           wordCount: processedContent.split(/\s+/).length,
           processingVersion: 1,
