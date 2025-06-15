@@ -1,6 +1,10 @@
 import type { NextApiRequest, NextApiResponse } from "next";
 import axios from "axios";
-import type { Language, ProcessedContent } from "../../../common.type";
+import type {
+  Language,
+  ProcessedContent,
+  Translation,
+} from "../../../common.type";
 
 const DS_SERVICE_URL =
   process.env.NEXT_PUBLIC_DS_URL || "http://localhost:3001";
@@ -37,9 +41,11 @@ export default async function handler(
 
     // Store the translation
     await storeTranslation(
-      processedContent._id,
+      processedContent,
       targetLanguage,
-      translatedHtml
+      translatedHtml,
+      processedContent.title,
+      processedContent.summary
     );
 
     const translationResponse = await getTranslation(
@@ -100,21 +106,31 @@ async function getTranslatedHtml(
 }
 
 async function storeTranslation(
-  processedContentId: string,
+  processedContent: ProcessedContent,
   targetLanguage: string,
-  translatedContent: string
+  translatedContent: string,
+  title: string,
+  summary: string
 ): Promise<void> {
+  const { _id } = processedContent;
   try {
     const response = await axios.post(
-      `${DATA_PERSISTENCE_URL}/api/translation/${processedContentId}`,
+      `${DATA_PERSISTENCE_URL}/api/translation/${_id}`,
       {
         targetLanguage,
-        translatedContent,
+        content: translatedContent,
         status: "pending",
         metadata: {
+          crawledType: processedContent.metadata.crawledType,
+          topic: processedContent.metadata.topic,
+          wordCount: processedContent.metadata.wordCount,
           translatedAt: new Date(),
           translationProvider: "DeepSeek",
         },
+        title: title,
+        author: processedContent.author,
+        url: processedContent.url,
+        summary: summary,
       }
     );
 

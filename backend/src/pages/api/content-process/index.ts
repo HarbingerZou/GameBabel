@@ -66,7 +66,8 @@ export default async function handler(
       processedContent = await getCombinedHtml(ocrResults, article.content);
     }
 
-    const { summary, topic } = await getSummary(processedContent);
+    const topicOptions = await getTopicNames();
+    const { summary, topic } = await getSummary(processedContent, topicOptions);
     await storeProcessedContent(
       article,
       processedContent,
@@ -170,23 +171,23 @@ async function getCombinedHtml(
 }
 
 async function getTopicNames(): Promise<string[]> {
+  console.log("start get topic names");
   const topicsResponse = await axios.get(
-    `${DATA_PERSISTENCE_URL}/api/topics/names`
+    `${DATA_PERSISTENCE_URL}/api/topic/names`
   );
   return topicsResponse.data.map((topic: any) => topic.name);
 }
 
 async function getSummary(
-  content: string
+  content: string,
+  topicOptions: string[]
 ): Promise<{ summary: string; topic: string }> {
   console.log("start get summary");
-
-  const topicOptions = await getTopicNames();
   const summaryResponse = await axios.post(`${DS_SERVICE_URL}/summarize`, {
     content,
     topicOptions,
   });
-
+  console.log("summaryResponse", summaryResponse.data);
   return {
     summary: summaryResponse.data.summary,
     topic: summaryResponse.data.topic,
@@ -201,7 +202,9 @@ async function storeProcessedContent(
   topic: string
 ): Promise<void> {
   try {
+    console.log("start store processed content");
     // Get the original article to get required fields
+
     const response = await axios.post(
       `${DATA_PERSISTENCE_URL}/api/processed-content/${article._id}`,
       {
