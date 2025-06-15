@@ -28,6 +28,7 @@ export interface ProcessedContent {
   source: string;
   status: "pending" | "success" | "failed";
   metadata: {
+    topic: string;
     crawledType: "manual" | "profile_auto" | "search_auto";
     processedAt: Date;
     wordCount?: number;
@@ -39,11 +40,16 @@ export interface Translation {
   _id: string;
   processedContentId: string;
   targetLanguage: string;
+  title: string;
+  author: string;
+  url: string;
   summary: string;
   content: string;
   status: "pending" | "success" | "failed";
   metadata: {
     crawledType: "manual" | "profile_auto" | "search_auto";
+    topic: string;
+    wordCount?: number;
     translatedAt: Date;
     translationProvider: string;
   };

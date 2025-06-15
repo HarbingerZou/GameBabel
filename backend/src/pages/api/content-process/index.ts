@@ -20,7 +20,7 @@ export default async function handler(
   }
 
   try {
-    const { articleId } = req.body;
+    const { articleId }: { articleId: string } = req.body;
 
     if (!articleId) {
       return res.status(400).json({ error: "Missing required fields" });
@@ -68,7 +68,7 @@ export default async function handler(
 
     const { summary, topic } = await getSummary(processedContent);
     await storeProcessedContent(
-      articleId,
+      article,
       processedContent,
       article.language,
       summary,
@@ -171,7 +171,7 @@ async function getCombinedHtml(
 
 async function getTopicNames(): Promise<string[]> {
   const topicsResponse = await axios.get(
-    `${DATA_PERSISTENCE_URL}/api/topic/names`
+    `${DATA_PERSISTENCE_URL}/api/topics/names`
   );
   return topicsResponse.data.map((topic: any) => topic.name);
 }
@@ -194,7 +194,7 @@ async function getSummary(
 }
 
 async function storeProcessedContent(
-  contentId: string,
+  article: Article,
   processedContent: string,
   language: string,
   summary: string,
@@ -202,10 +202,8 @@ async function storeProcessedContent(
 ): Promise<void> {
   try {
     // Get the original article to get required fields
-    const article: Article = await getArticle(contentId);
-
     const response = await axios.post(
-      `${DATA_PERSISTENCE_URL}/api/processed-content/${contentId}`,
+      `${DATA_PERSISTENCE_URL}/api/processed-content/${article._id}`,
       {
         title: article.title,
         author: article.author,
