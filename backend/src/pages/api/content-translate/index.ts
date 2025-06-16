@@ -34,18 +34,21 @@ export default async function handler(
     }
 
     // Translate the processed content
-    const translatedHtml = await getTranslatedHtml(
-      processedContent.content,
-      targetLanguage
-    );
+    const { translatedContent, translatedTitle, translatedSummary } =
+      await getTranslatedHtml(
+        processedContent.content,
+        targetLanguage,
+        processedContent.title,
+        processedContent.summary
+      );
 
     // Store the translation
     await storeTranslation(
       processedContent,
       targetLanguage,
-      translatedHtml,
-      processedContent.title,
-      processedContent.summary
+      translatedContent,
+      translatedTitle,
+      translatedSummary
     );
 
     const translationResponse = await getTranslation(
@@ -89,20 +92,33 @@ async function getProcessedContent(
 
 async function getTranslatedHtml(
   html: string,
-  language: Language
-): Promise<string> {
+  language: Language,
+  title: string,
+  summary: string
+): Promise<{
+  translatedContent: string;
+  translatedTitle: string;
+  translatedSummary: string;
+}> {
   console.log("start translate html");
   const translateResponse = await axios.post(
     `${DS_SERVICE_URL}/translate-html`,
     {
       htmlContent: html,
       language: language,
+      title: title,
+      summary: summary,
     }
   );
 
-  const translatedHtml = translateResponse.data.translatedHtml;
-  console.log("Translated HTML length:", translatedHtml.length);
-  return translatedHtml;
+  const {
+    translatedHtml: translatedContent,
+    title: translatedTitle,
+    summary: translatedSummary,
+  } = translateResponse.data;
+
+  console.log("Translated HTML length:", translatedContent.length);
+  return { translatedContent, translatedTitle, translatedSummary };
 }
 
 async function storeTranslation(
