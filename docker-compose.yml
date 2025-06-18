@@ -3,11 +3,6 @@ services:
     build:
       context: ./backend
       dockerfile: Dockerfile
-      args:
-        - NEXT_PUBLIC_CRAWLER_URL=http://crawler:3000
-        - NEXT_PUBLIC_DATA_PERSISTENCE_URL=http://data-persistence:3000
-        - NEXT_PUBLIC_OCR_URL=http://image-ocr:3000
-        - NEXT_PUBLIC_DS_URL=http://ds-services:3000
     container_name: backend
     ports:
       - "3001:3000"
@@ -15,6 +10,10 @@ services:
       - NODE_ENV=production
       - REDIS_HOST=redis
       - REDIS_PORT=6379
+      - NEXT_PUBLIC_CRAWLER_URL=http://crawler:3000
+      - NEXT_PUBLIC_DATA_PERSISTENCE_URL=http://data-persistence:3000
+      - NEXT_PUBLIC_OCR_URL=http://image-ocr:3000
+      - NEXT_PUBLIC_DS_URL=http://ds-services:3000
     restart: unless-stopped
     depends_on:
       - data-persistence
