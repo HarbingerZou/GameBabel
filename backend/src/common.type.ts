@@ -28,6 +28,7 @@ export interface ProcessedContent {
   source: string;
   status: "pending" | "success" | "failed";
   metadata: {
+    isHighQuality: boolean;
     topic: string;
     crawledType: "manual" | "profile_auto" | "search_auto";
     processedAt: Date;
@@ -47,6 +48,7 @@ export interface Translation {
   content: string;
   status: "pending" | "success" | "failed";
   metadata: {
+    isHighQuality: boolean;
     crawledType: "manual" | "profile_auto" | "search_auto";
     topic: string;
     wordCount?: number;

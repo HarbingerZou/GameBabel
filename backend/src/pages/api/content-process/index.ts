@@ -67,13 +67,17 @@ export default async function handler(
     }
 
     const topicOptions = await getTopicNames();
-    const { summary, topic } = await getSummary(processedContent, topicOptions);
+    const { summary, topic, isHighQuality } = await getSummary(
+      processedContent,
+      topicOptions
+    );
     await storeProcessedContent(
       article,
       processedContent,
       article.language,
       summary,
-      topic
+      topic,
+      isHighQuality
     );
 
     // Return the processed content
@@ -181,7 +185,7 @@ async function getTopicNames(): Promise<string[]> {
 async function getSummary(
   content: string,
   topicOptions: string[]
-): Promise<{ summary: string; topic: string }> {
+): Promise<{ isHighQuality: boolean; summary: string; topic: string }> {
   console.log("start get summary");
   const summaryResponse = await axios.post(`${DS_SERVICE_URL}/summarize`, {
     content,
@@ -189,6 +193,7 @@ async function getSummary(
   });
   console.log("summaryResponse", summaryResponse.data);
   return {
+    isHighQuality: summaryResponse.data.isHighQuality,
     summary: summaryResponse.data.summary,
     topic: summaryResponse.data.topic,
   };
@@ -199,7 +204,8 @@ async function storeProcessedContent(
   processedContent: string,
   language: string,
   summary: string,
-  topic: string
+  topic: string,
+  isHighQuality: boolean
 ): Promise<void> {
   try {
     console.log("start store processed content");
@@ -217,6 +223,7 @@ async function storeProcessedContent(
         source: article.source,
         status: "pending",
         metadata: {
+          isHighQuality: isHighQuality,
           topic: topic,
           crawledType: article.metadata.crawledType,
           processedAt: new Date(),
