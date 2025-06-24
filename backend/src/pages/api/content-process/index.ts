@@ -66,14 +66,16 @@ export default async function handler(
       processedContent = await getCombinedHtml(ocrResults, article.content);
     }
 
+    const polishedContent = await getPolishedContent(processedContent);
+
     const topicOptions = await getTopicNames();
     const { summary, topic, isHighQuality } = await getSummary(
-      processedContent,
+      polishedContent,
       topicOptions
     );
     await storeProcessedContent(
       article,
-      processedContent,
+      polishedContent,
       article.language,
       summary,
       topic,
@@ -90,13 +92,6 @@ export default async function handler(
       details: error instanceof Error ? error.message : "Unknown error",
     });
   }
-}
-
-async function getProcessedContent(articleId: string) {
-  const response = await axios.get(
-    `${DATA_PERSISTENCE_URL}/api/processed-content/${articleId}`
-  );
-  return response.data;
 }
 
 async function getArticle(articleId: string): Promise<Article> {
@@ -174,6 +169,15 @@ async function getCombinedHtml(
   return combinedHtml;
 }
 
+async function getPolishedContent(content: string): Promise<string> {
+  console.log("start get polished content");
+  const polishedContentResponse = await axios.post(`${DS_SERVICE_URL}/polish`, {
+    content,
+  });
+  console.log("polishedContentResponse", polishedContentResponse.data);
+  return polishedContentResponse.data.content;
+}
+
 async function getTopicNames(): Promise<string[]> {
   console.log("start get topic names");
   const topicsResponse = await axios.get(
@@ -244,4 +248,11 @@ async function storeProcessedContent(
     console.error("Error storing processed content:", error);
     throw error;
   }
+}
+
+async function getProcessedContent(articleId: string) {
+  const response = await axios.get(
+    `${DATA_PERSISTENCE_URL}/api/processed-content/${articleId}`
+  );
+  return response.data;
 }
