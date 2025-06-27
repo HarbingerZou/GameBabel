@@ -1,5 +1,5 @@
 import type { NextApiRequest, NextApiResponse } from "next";
-import { contentProcessingQueue } from "../../../lib/queue/contentProcessingQueue";
+import { contentProcessingQueue } from "@/src/queue_workers/contentProcessingQueue";
 
 export default async function handler(
   req: NextApiRequest,
