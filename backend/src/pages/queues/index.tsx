@@ -1,5 +1,6 @@
 import { GetServerSideProps } from "next";
-import { queueManager } from "../../queue_workers/QueueManager";
+import { useState } from "react";
+import { RedisManager } from "../../queue_workers/RedisManager";
 import { JobStats } from "../../queue_workers/JobQueue";
 
 interface QueueInfo {
@@ -8,11 +9,56 @@ interface QueueInfo {
 }
 
 interface QueuesPageProps {
-  queues: QueueInfo[];
+  queueInfos: QueueInfo[];
   error?: string;
 }
 
-export default function QueuesPage({ queues, error }: QueuesPageProps) {
+export default function QueuesPage({ queueInfos, error }: QueuesPageProps) {
+  const [isTriggering, setIsTriggering] = useState(false);
+  const [triggerResult, setTriggerResult] = useState<{
+    success: boolean;
+    message: string;
+    jobId?: string;
+    testId?: string;
+  } | null>(null);
+
+  const handleTriggerTest = async () => {
+    setIsTriggering(true);
+    setTriggerResult(null);
+
+    try {
+      const response = await fetch("/api/queues/trigger-test", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+      });
+
+      const result = await response.json();
+
+      if (response.ok) {
+        setTriggerResult({
+          success: true,
+          message: result.message,
+          jobId: result.jobId,
+          testId: result.testId,
+        });
+      } else {
+        setTriggerResult({
+          success: false,
+          message: result.error || "Failed to trigger test processing",
+        });
+      }
+    } catch (error) {
+      setTriggerResult({
+        success: false,
+        message: "Network error occurred",
+      });
+    } finally {
+      setIsTriggering(false);
+    }
+  };
+
   if (error) {
     return (
       <div className="p-4">
@@ -24,53 +70,91 @@ export default function QueuesPage({ queues, error }: QueuesPageProps) {
     );
   }
 
-  if (queues.length === 0) {
-    return (
-      <div className="p-4">
-        <h1 className="text-2xl font-bold mb-4">Queue Status</h1>
-        <div className="bg-gray-50 border border-gray-200 rounded-lg p-8 text-center">
-          <p className="text-gray-600">No queues found</p>
-        </div>
-      </div>
-    );
-  }
-
   return (
     <div className="p-4">
-      <h1 className="text-2xl font-bold mb-4">Queue Status</h1>
+      <div className="flex justify-between items-center mb-6">
+        <h1 className="text-2xl font-bold">Queue Status</h1>
+        <button
+          onClick={handleTriggerTest}
+          disabled={isTriggering}
+          className={`px-4 py-2 rounded-lg font-medium transition-colors ${
+            isTriggering
+              ? "bg-gray-300 text-gray-500 cursor-not-allowed"
+              : "bg-blue-600 text-white hover:bg-blue-700"
+          }`}
+        >
+          {isTriggering ? "Triggering..." : "Trigger Test Processing"}
+        </button>
+      </div>
+
+      {triggerResult && (
+        <div
+          className={`mb-4 p-4 rounded-lg border ${
+            triggerResult.success
+              ? "bg-green-50 border-green-200 text-green-800"
+              : "bg-red-50 border-red-200 text-red-800"
+          }`}
+        >
+          <div className="font-medium">
+            {triggerResult.success ? "Success!" : "Error"}
+          </div>
+          <div className="text-sm mt-1">{triggerResult.message}</div>
+          {triggerResult.success && triggerResult.jobId && (
+            <div className="text-sm mt-1">
+              Job ID:{" "}
+              <code className="bg-green-100 px-1 rounded">
+                {triggerResult.jobId}
+              </code>
+            </div>
+          )}
+          {triggerResult.success && triggerResult.testId && (
+            <div className="text-sm mt-1">
+              Test ID:{" "}
+              <code className="bg-green-100 px-1 rounded">
+                {triggerResult.testId}
+              </code>
+            </div>
+          )}
+        </div>
+      )}
+
       <div className="grid gap-4">
-        {queues.map((queue) => (
+        {queueInfos.map((queueInfo) => (
           <div
-            key={queue.name}
+            key={queueInfo.name}
             className="border rounded-lg p-4 shadow-sm hover:shadow-md transition-shadow"
           >
-            <h2 className="text-xl font-semibold mb-2">{queue.name}</h2>
-            <div className="grid grid-cols-3 gap-4">
-              <div className="bg-blue-50 p-3 rounded">
-                <div className="text-sm text-blue-600">Active</div>
-                <div className="text-2xl font-bold">{queue.stats.active}</div>
-              </div>
-              <div className="bg-green-50 p-3 rounded">
-                <div className="text-sm text-green-600">Completed</div>
-                <div className="text-2xl font-bold">
-                  {queue.stats.completed}
+            <h2 className="text-xl font-semibold mb-2">{queueInfo.name}</h2>
+            <div className="grid grid-cols-2 md:grid-cols-5 gap-4 text-sm">
+              <div>
+                <div className="font-medium text-gray-600">Total</div>
+                <div className="text-lg font-semibold">
+                  {queueInfo.stats.total}
                 </div>
               </div>
-              <div className="bg-red-50 p-3 rounded">
-                <div className="text-sm text-red-600">Failed</div>
-                <div className="text-2xl font-bold">{queue.stats.failed}</div>
+              <div>
+                <div className="font-medium text-gray-600">Active</div>
+                <div className="text-lg font-semibold text-blue-600">
+                  {queueInfo.stats.active}
+                </div>
               </div>
-              <div className="bg-yellow-50 p-3 rounded">
-                <div className="text-sm text-yellow-600">Waiting</div>
-                <div className="text-2xl font-bold">{queue.stats.waiting}</div>
+              <div>
+                <div className="font-medium text-gray-600">Waiting</div>
+                <div className="text-lg font-semibold text-yellow-600">
+                  {queueInfo.stats.waiting}
+                </div>
               </div>
-              <div className="bg-purple-50 p-3 rounded">
-                <div className="text-sm text-purple-600">Delayed</div>
-                <div className="text-2xl font-bold">{queue.stats.delayed}</div>
+              <div>
+                <div className="font-medium text-gray-600">Completed</div>
+                <div className="text-lg font-semibold text-green-600">
+                  {queueInfo.stats.completed}
+                </div>
               </div>
-              <div className="bg-gray-50 p-3 rounded">
-                <div className="text-sm text-gray-600">Total</div>
-                <div className="text-2xl font-bold">{queue.stats.total}</div>
+              <div>
+                <div className="font-medium text-gray-600">Failed</div>
+                <div className="text-lg font-semibold text-red-600">
+                  {queueInfo.stats.failed}
+                </div>
               </div>
             </div>
           </div>
@@ -84,43 +168,19 @@ export const getServerSideProps: GetServerSideProps<
   QueuesPageProps
 > = async () => {
   try {
-    const queueNames = queueManager.getQueueNames();
-    const queues: QueueInfo[] = [];
-
-    for (const queueName of queueNames) {
-      try {
-        const stats = await queueManager.getQueueStats(queueName);
-        queues.push({
-          name: queueName,
-          stats,
-        });
-      } catch (error) {
-        console.error(`Failed to get stats for queue ${queueName}:`, error);
-        // Add queue with error stats
-        queues.push({
-          name: queueName,
-          stats: {
-            total: 0,
-            completed: 0,
-            failed: 0,
-            delayed: 0,
-            active: 0,
-            waiting: 0,
-          },
-        });
-      }
-    }
+    const queueInfos = await RedisManager.getAllQueueInfo();
+    console.log("queueInfos", queueInfos);
 
     return {
       props: {
-        queues,
+        queueInfos,
       },
     };
   } catch (error) {
     console.error("Error fetching queue stats:", error);
     return {
       props: {
-        queues: [],
+        queueInfos: [],
         error: "Failed to fetch queue statistics",
       },
     };

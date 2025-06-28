@@ -40,15 +40,30 @@ export class JobQueue<
   R extends JobResult = JobResult
 > {
   private queue: Queue;
-  private worker: Worker;
-  private processor: JobProcessor<T, R>;
+  private worker: Worker | null = null;
+  private processor: JobProcessor<T, R> | null = null;
 
-  constructor(queueName: string, processor: JobProcessor<T, R>) {
-    this.processor = processor;
+  constructor(queueName: string) {
     this.queue = new Queue(queueName, defaultQueueOptions);
+  }
+  /**
+   * Set the processor function for this queue
+   */
+  public setProcessor(processor: JobProcessor<T, R>): void {
+    this.processor = processor;
+
+    // Close existing worker if any
+    if (this.worker) {
+      this.worker.close();
+    }
+
+    // Create new worker with the processor
     this.worker = new Worker(
-      queueName,
+      this.queue.name,
       async (job: Job<T>) => {
+        if (!this.processor) {
+          throw new Error("No processor set for this queue");
+        }
         return this.processor(job.data, async (progress) => {
           await job.updateProgress(progress);
         });
@@ -60,7 +75,16 @@ export class JobQueue<
     this.setupEventListeners();
   }
 
+  /**
+   * Check if the queue has a processor set
+   */
+  public hasProcessor(): boolean {
+    return this.processor !== null;
+  }
+
   private setupEventListeners() {
+    if (!this.worker) return;
+
     this.worker.on("completed", (job) => {
       console.log(`Job ${job.id} completed successfully`);
     });
@@ -185,6 +209,8 @@ export class JobQueue<
   // Close the queue and worker
   async close(): Promise<void> {
     await this.queue.close();
-    await this.worker.close();
+    if (this.worker) {
+      await this.worker.close();
+    }
   }
 }
