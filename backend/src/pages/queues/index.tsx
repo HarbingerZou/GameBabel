@@ -169,8 +169,6 @@ export const getServerSideProps: GetServerSideProps<
 > = async () => {
   try {
     const queueInfos = await RedisManager.getAllQueueInfo();
-    console.log("queueInfos", queueInfos);
-
     return {
       props: {
         queueInfos,

@@ -122,7 +122,6 @@ export class RedisManager {
   public static async getAllQueueInfo(): Promise<QueueInfo[]> {
     const queueNames = await RedisManager.listQueueNamesInRedis();
     const queueInfos: QueueInfo[] = [];
-
     for (const name of queueNames) {
       try {
         const queue = await RedisManager.getExistingQueue(name);
