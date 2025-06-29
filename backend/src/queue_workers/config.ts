@@ -12,7 +12,7 @@ export const defaultQueueOptions: QueueOptions = {
       type: "exponential",
       delay: 1000,
     },
-    removeOnComplete: true,
+    removeOnComplete: false, // Changed to false to keep completed jobs
     removeOnFail: false,
   },
 };

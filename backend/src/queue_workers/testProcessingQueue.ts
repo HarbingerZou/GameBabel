@@ -26,19 +26,19 @@ export class TestProcessingQueue extends JobQueue<
       console.log("Test step 1: Initializing...");
 
       // Simulate some processing time
-      await new Promise((resolve) => setTimeout(resolve, 1000));
+      await new Promise((resolve) => setTimeout(resolve, 5000));
       await updateProgress(25);
       console.log("Test step 2: Processing data...");
 
-      await new Promise((resolve) => setTimeout(resolve, 1000));
+      await new Promise((resolve) => setTimeout(resolve, 5000));
       await updateProgress(50);
       console.log("Test step 3: Validating results...");
 
-      await new Promise((resolve) => setTimeout(resolve, 1000));
+      await new Promise((resolve) => setTimeout(resolve, 5000));
       await updateProgress(75);
       console.log("Test step 4: Finalizing...");
 
-      await new Promise((resolve) => setTimeout(resolve, 500));
+      await new Promise((resolve) => setTimeout(resolve, 5000));
       await updateProgress(100);
       console.log("Test processing completed successfully");
 

@@ -1,4 +1,4 @@
-import { Queue, Worker, Job, JobState } from "bullmq";
+import { Queue, Worker, Job, JobState, JobsOptions, JobProgress } from "bullmq";
 import { defaultQueueOptions } from "./config";
 
 export interface JobData {
@@ -21,13 +21,13 @@ export interface JobStats {
 export interface JobInfo {
   id: string;
   name: string;
-  status: JobState;
+  status: JobState | "unknown";
   progress: number;
   timestamp: number;
   data: JobData;
-  result?: JobResult;
-  error?: string;
-  duration?: number;
+  result: JobResult | null;
+  error: string | null;
+  duration: number | null;
 }
 
 export type JobProcessor<T extends JobData, R extends JobResult> = (
@@ -99,7 +99,7 @@ export class JobQueue<
   }
 
   // Add a new job to the queue
-  async addJob(name: string, data: T, options?: any): Promise<Job> {
+  async addJob(name: string, data: T, options?: JobsOptions): Promise<Job> {
     return this.queue.add(name, data, options);
   }
 
@@ -125,15 +125,15 @@ export class JobQueue<
 
   // Get detailed information about a specific job
   async getJobInfo(jobId: string): Promise<JobInfo | null> {
-    const job = await this.queue.getJob(jobId);
+    const job: Job | null = await this.queue.getJob(jobId);
     if (!job) return null;
 
-    const state = await job.getState();
-    const progress = await job.progress;
-    const timestamp = job.timestamp;
-    const duration = job.finishedOn
+    const state: JobState | "unknown" = await job.getState();
+    const progress: JobProgress = job.progress;
+    const timestamp: number = job.timestamp;
+    const duration: number | null = job.finishedOn
       ? job.finishedOn - job.timestamp
-      : undefined;
+      : null;
 
     return {
       id: job.id!,
@@ -142,15 +142,15 @@ export class JobQueue<
       progress: typeof progress === "number" ? progress : 0,
       timestamp,
       data: job.data,
-      result: job.returnvalue,
-      error: job.failedReason,
-      duration,
+      result: job.returnvalue || null,
+      error: job.failedReason || null,
+      duration: duration,
     };
   }
 
   // Get all jobs with their current status
   async getAllJobs(): Promise<JobInfo[]> {
-    const jobs = await this.queue.getJobs([
+    const jobs: Job[] = await this.queue.getJobs([
       "active",
       "waiting",
       "delayed",
@@ -161,39 +161,6 @@ export class JobQueue<
       jobs.map((job) => this.getJobInfo(job.id!))
     );
     return jobInfos.filter((info): info is JobInfo => info !== null);
-  }
-
-  // Get jobs by status
-  async getJobsByStatus(status: JobState): Promise<JobInfo[]> {
-    const jobs = await this.queue.getJobs([status]);
-    const jobInfos = await Promise.all(
-      jobs.map((job) => this.getJobInfo(job.id!))
-    );
-    return jobInfos.filter((info): info is JobInfo => info !== null);
-  }
-
-  // Get recent completed jobs with their duration
-  async getRecentCompletedJobs(limit: number = 10): Promise<JobInfo[]> {
-    const jobs = await this.queue.getJobs(["completed"], 0, limit, true);
-    const jobInfos = await Promise.all(
-      jobs.map((job) => this.getJobInfo(job.id!))
-    );
-    return jobInfos.filter((info): info is JobInfo => info !== null);
-  }
-
-  // Get failed jobs
-  async getFailedJobs(limit: number = 10): Promise<JobInfo[]> {
-    const jobs = await this.queue.getJobs(["failed"], 0, limit, true);
-    const jobInfos = await Promise.all(
-      jobs.map((job) => this.getJobInfo(job.id!))
-    );
-    return jobInfos.filter((info): info is JobInfo => info !== null);
-  }
-
-  // Clean up completed jobs older than a certain age
-  async cleanOldJobs(age: number = 24 * 60 * 60 * 1000): Promise<void> {
-    await this.queue.clean(age, "completed" as any);
-    await this.queue.clean(age, "failed" as any);
   }
 
   // Pause the queue
