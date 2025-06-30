@@ -63,29 +63,64 @@ export class JobQueue<
     processor?: JobProcessor<T, R>
   ): Promise<JobQueue<T, R>> {
     const queueNames = await RedisManager.listQueueNamesInRedis();
-    let jobQueue: JobQueue<T, R>;
-    if (queueNames.includes(queueName)) {
-      jobQueue = new JobQueue<T, R>(queueName);
-    } else {
-      jobQueue = new JobQueue<T, R>(queueName);
-      if (!processor) {
-        throw new Error("Processor is required to create a new queue");
+    console.log("queueNames", queueNames);
+
+    // Simple Redis lock to prevent race condition
+    const lockKey = `queue_lock:${queueName}`;
+    const redis = RedisManager.getRedisInstance();
+    const lockValue = Date.now().toString();
+
+    // Try to acquire lock, if failed, wait and retry
+    let acquired = false;
+    for (let i = 0; i < 10; i++) {
+      const result = await redis.set(lockKey, lockValue, "PX", 5000, "NX");
+      if (result === "OK") {
+        acquired = true;
+        break;
       }
-      const worker = new Worker(
-        jobQueue.queue.name,
-        async (job: Job<T>) => {
-          if (!processor) {
-            throw new Error("No processor set for this queue");
-          }
-          return processor(job.data, async (progress) => {
-            await job.updateProgress(progress);
-          });
-        },
-        defaultWorkerOptions
-      );
-      JobQueue.setupEventListeners(worker);
+      await new Promise((resolve) => setTimeout(resolve, 100));
     }
-    return jobQueue;
+
+    if (!acquired) {
+      throw new Error(`Failed to acquire lock for queue: ${queueName}`);
+    }
+
+    try {
+      let jobQueue: JobQueue<T, R>;
+      if (queueNames.includes(queueName)) {
+        jobQueue = new JobQueue<T, R>(queueName);
+      } else {
+        jobQueue = new JobQueue<T, R>(queueName);
+        if (!processor) {
+          throw new Error("Processor is required to create a new queue");
+        }
+        const worker = new Worker(
+          jobQueue.queue.name,
+          async (job: Job<T>) => {
+            return processor(job.data, async (progress) => {
+              await job.updateProgress(progress);
+            });
+          },
+          defaultWorkerOptions
+        );
+        JobQueue.setupEventListeners(worker);
+      }
+      return jobQueue;
+    } finally {
+      // Release the lock
+      await redis.eval(
+        `
+        if redis.call("get", KEYS[1]) == ARGV[1] then
+          return redis.call("del", KEYS[1])
+        else
+          return 0
+        end
+      `,
+        1,
+        lockKey,
+        lockValue
+      );
+    }
   }
 
   //Set up event listeners

@@ -184,6 +184,14 @@ export class RedisManager {
       };
     }
   }
+
+  /**
+   * Get the Redis instance
+   */
+  public static getRedisInstance(): Redis {
+    return RedisManager.initializeRedis();
+  }
+
   /**
    * Close all queues and Redis connection
    */
