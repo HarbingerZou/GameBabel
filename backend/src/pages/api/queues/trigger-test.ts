@@ -1,5 +1,10 @@
 import { NextApiRequest, NextApiResponse } from "next";
-import { TestProcessingQueue } from "../../../queue_workers/testProcessingQueue";
+import {
+  TestProcessingQueue,
+  TestProcessingData,
+  TestProcessingResult,
+} from "../../../queue_workers/testProcessingQueue";
+import { JobQueue } from "@/src/queue_workers/JobQueue";
 
 export default async function handler(
   req: NextApiRequest,
@@ -11,7 +16,10 @@ export default async function handler(
 
   try {
     // Create a new instance of the test processing queue
-    const testProcessingQueue = new TestProcessingQueue();
+    const testProcessingQueue: JobQueue<
+      TestProcessingData,
+      TestProcessingResult
+    > = await TestProcessingQueue.createQueue();
 
     // Generate a unique test ID
     const testId = `test-${Date.now()}`;

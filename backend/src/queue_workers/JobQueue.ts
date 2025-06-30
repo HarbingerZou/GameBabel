@@ -1,5 +1,6 @@
 import { Queue, Worker, Job, JobState, JobsOptions, JobProgress } from "bullmq";
-import { defaultQueueOptions } from "./config";
+import { defaultQueueOptions, defaultWorkerOptions } from "./config";
+import { RedisManager } from "./RedisManager";
 
 export interface JobData {
   [key: string]: any;
@@ -35,6 +36,7 @@ export type JobProcessor<T extends JobData, R extends JobResult> = (
   updateProgress: (progress: number) => Promise<void>
 ) => Promise<R>;
 
+//use only to create a a reference to a queue in redis
 export class JobQueue<
   T extends JobData = JobData,
   R extends JobResult = JobResult
@@ -46,54 +48,59 @@ export class JobQueue<
   constructor(queueName: string) {
     this.queue = new Queue(queueName, defaultQueueOptions);
   }
-  /**
-   * Set the processor function for this queue
-   */
-  public setProcessor(processor: JobProcessor<T, R>): void {
-    this.processor = processor;
 
-    // Close existing worker if any
-    if (this.worker) {
-      this.worker.close();
+  /**
+   * Create a new jobQueue
+   * @param queueName - The name of the jobQueue to create
+   * @param processor - The processor function for the jobQueue
+   */
+  //Enforce one and only one queue per processor
+  public static async createQueue<
+    T extends JobData = JobData,
+    R extends JobResult = JobResult
+  >(
+    queueName: string,
+    processor?: JobProcessor<T, R>
+  ): Promise<JobQueue<T, R>> {
+    const queueNames = await RedisManager.listQueueNamesInRedis();
+    let jobQueue: JobQueue<T, R>;
+    if (queueNames.includes(queueName)) {
+      jobQueue = new JobQueue<T, R>(queueName);
+    } else {
+      jobQueue = new JobQueue<T, R>(queueName);
+      if (!processor) {
+        throw new Error("Processor is required to create a new queue");
+      }
+      const worker = new Worker(
+        jobQueue.queue.name,
+        async (job: Job<T>) => {
+          if (!processor) {
+            throw new Error("No processor set for this queue");
+          }
+          return processor(job.data, async (progress) => {
+            await job.updateProgress(progress);
+          });
+        },
+        defaultWorkerOptions
+      );
+      JobQueue.setupEventListeners(worker);
     }
-
-    // Create new worker with the processor
-    this.worker = new Worker(
-      this.queue.name,
-      async (job: Job<T>) => {
-        if (!this.processor) {
-          throw new Error("No processor set for this queue");
-        }
-        return this.processor(job.data, async (progress) => {
-          await job.updateProgress(progress);
-        });
-      },
-      defaultQueueOptions
-    );
-
-    // Set up event listeners
-    this.setupEventListeners();
+    return jobQueue;
   }
 
-  /**
-   * Check if the queue has a processor set
-   */
-  public hasProcessor(): boolean {
-    return this.processor !== null;
-  }
+  //Set up event listeners
+  private static setupEventListeners(worker: Worker) {
+    if (!worker) return;
 
-  private setupEventListeners() {
-    if (!this.worker) return;
-
-    this.worker.on("completed", (job) => {
+    worker.on("completed", (job) => {
       console.log(`Job ${job.id} completed successfully`);
     });
 
-    this.worker.on("failed", (job, error) => {
+    worker.on("failed", (job, error) => {
       console.error(`Job ${job?.id} failed:`, error);
     });
 
-    this.worker.on("progress", (job, progress) => {
+    worker.on("progress", (job, progress) => {
       console.log(`Job ${job.id} progress: ${progress}%`);
     });
   }

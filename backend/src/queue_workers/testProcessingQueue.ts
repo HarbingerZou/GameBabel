@@ -1,4 +1,5 @@
 import { JobQueue, JobData, JobResult } from "./JobQueue";
+import { Queue } from "bullmq";
 
 export interface TestProcessingData extends JobData {
   testId: string;
@@ -11,15 +12,14 @@ export interface TestProcessingResult extends JobResult {
   message: string;
 }
 
-export class TestProcessingQueue extends JobQueue<
-  TestProcessingData,
-  TestProcessingResult
-> {
-  constructor() {
-    super("test-processing");
-
-    // Set up the processor for this queue
-    this.setProcessor(async (data: TestProcessingData, updateProgress) => {
+export class TestProcessingQueue {
+  public static async createQueue(): Promise<
+    JobQueue<TestProcessingData, TestProcessingResult>
+  > {
+    const output = await JobQueue.createQueue<
+      TestProcessingData,
+      TestProcessingResult
+    >("test-processing-2", async (data: TestProcessingData, updateProgress) => {
       console.log(`Starting test processing for testId: ${data.testId}`);
 
       await updateProgress(0);
@@ -48,5 +48,6 @@ export class TestProcessingQueue extends JobQueue<
         message: data.message || "Test processing completed successfully",
       };
     });
+    return output;
   }
 }
