@@ -1,5 +1,6 @@
 import { GetServerSideProps } from "next";
 import { useState } from "react";
+import Link from "next/link";
 import { RedisManager } from "../../queue_workers/RedisManager";
 import { JobStats } from "../../queue_workers/JobQueue";
 
@@ -77,11 +78,7 @@ export default function QueuesPage({ queueInfos, error }: QueuesPageProps) {
         <button
           onClick={handleTriggerTest}
           disabled={isTriggering}
-          className={`px-4 py-2 rounded-lg font-medium transition-colors ${
-            isTriggering
-              ? "bg-gray-300 text-gray-500 cursor-not-allowed"
-              : "bg-blue-600 text-white hover:bg-blue-700"
-          }`}
+          className={`px-4 py-2 rounded-lg font-medium transition-colors bg-blue-900 text-white hover:bg-blue-800`}
         >
           {isTriggering ? "Triggering..." : "Trigger Test Processing"}
         </button>
@@ -124,7 +121,15 @@ export default function QueuesPage({ queueInfos, error }: QueuesPageProps) {
             key={queueInfo.name}
             className="border rounded-lg p-4 shadow-sm hover:shadow-md transition-shadow"
           >
-            <h2 className="text-xl font-semibold mb-2">{queueInfo.name}</h2>
+            <div className="flex justify-between items-start mb-2">
+              <h2 className="text-xl font-semibold">{queueInfo.name}</h2>
+              <Link
+                href={`/queues/${queueInfo.name}`}
+                className="px-3 py-1 text-sm bg-gray-700 text-white rounded hover:bg-gray-800 transition-colors"
+              >
+                View Jobs
+              </Link>
+            </div>
             <div className="grid grid-cols-2 md:grid-cols-5 gap-4 text-sm">
               <div>
                 <div className="font-medium text-gray-600">Total</div>

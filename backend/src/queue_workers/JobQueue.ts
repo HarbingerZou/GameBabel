@@ -143,7 +143,7 @@ export class JobQueue<
       : null;
 
     return {
-      id: job.id!,
+      id: job.id || "",
       name: job.name,
       status: state,
       progress: typeof progress === "number" ? progress : 0,
