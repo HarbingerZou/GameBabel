@@ -1,198 +1,79 @@
-import { useState, useEffect } from "react";
+import { useState } from "react";
 import { useRouter } from "next/router";
-import axios from "axios";
-import { Article, ProcessedContent } from "../common.type";
-import { GetServerSideProps } from "next";
 
-interface HomeProps {
-  initialArticles: Article[];
-  processedContents: { [key: string]: ProcessedContent };
-}
-
-export default function Home({
-  initialArticles,
-  processedContents,
-}: HomeProps) {
+export default function Home() {
   const router = useRouter();
-  const [articles, setArticles] = useState<Article[]>(initialArticles);
-  const [newUrl, setNewUrl] = useState("");
-  const [processingType, setProcessingType] = useState<"default" | "queued">(
-    "default"
-  );
-  const [loading, setLoading] = useState(false);
-  const [error, setError] = useState("");
+  const [keyword, setKeyword] = useState("");
 
-  const handleSubmit = async (e: React.FormEvent) => {
+  const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    if (!newUrl) return;
-
-    setLoading(true);
-    setError("");
-
-    try {
-      if (processingType === "queued") {
-        // Send to queue endpoint
-        const queueResponse = await axios.post("/api/articles/queue", {
-          url: newUrl,
-        });
-        // For queued processing, we don't add to articles list immediately
-        // The article will appear when the queue processing completes
-        console.log("Job added to queue:", queueResponse.data);
-      } else {
-        // Send to default endpoint for immediate processing
-        const articleResponse = await axios.post("/api/articles", {
-          url: newUrl,
-        });
-        setArticles((prevArticles) => [articleResponse.data, ...prevArticles]);
-      }
-
-      setNewUrl("");
-    } catch (err) {
-      setError("Failed to process article");
-      console.error(err);
-    } finally {
-      setLoading(false);
+    if (keyword.trim()) {
+      router.push(`/list?keyword=${encodeURIComponent(keyword.trim())}`);
+    } else {
+      router.push("/list");
     }
   };
 
-  const handleViewArticle = (id: string) => {
-    router.push(`/article/${id}`);
-  };
-
-  const handleViewProcessedArticle = (id: string) => {
-    router.push(`/processed-article/${id}`);
-  };
-
-  const getStatusColor = (status: string) => {
-    switch (status) {
-      case "success":
-        return "bg-emerald-50 text-emerald-700 border-emerald-200";
-      case "failed":
-        return "bg-red-50 text-red-700 border-red-200";
-      case "pending":
-        return "bg-amber-50 text-amber-700 border-amber-200";
-      default:
-        return "bg-gray-50 text-gray-700 border-gray-200";
-    }
+  const handleViewAll = () => {
+    router.push("/list");
   };
 
   return (
-    <div className="min-h-screen bg-gray-50">
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+    <div className="min-h-screen bg-gray-50 flex flex-col justify-center">
+      <div className="max-w-2xl mx-auto px-4 sm:px-6 lg:px-8">
         {/* Header */}
-        <div className="mb-8">
-          <h1 className="text-3xl font-bold text-gray-900 mb-2">
-            Article Management
-          </h1>
-          <p className="text-gray-600">
-            Process and manage articles from various sources
+        <div className="text-center mb-12">
+          <h1 className="text-4xl font-bold text-gray-900 mb-4">Translayze</h1>
+          <p className="text-lg text-gray-600 max-w-md mx-auto">
+            Crawl, process, and translate articles from various sources with
+            intelligent analysis
           </p>
         </div>
 
-        {/* Input Form */}
-        <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6 mb-8">
-          <form onSubmit={handleSubmit}>
-            <div className="grid grid-cols-1 lg:grid-cols-3 gap-4 items-end">
-              <div>
-                <label
-                  htmlFor="url"
-                  className="block text-sm font-medium text-gray-700 mb-2"
-                >
-                  Article URL
-                </label>
+        {/* Main Content Card */}
+        <div className="bg-white rounded-2xl shadow-xl border border-gray-200 p-8">
+          {/* Search Form */}
+          <form onSubmit={handleSubmit} className="mb-8">
+            <div className="mb-6">
+              <label
+                htmlFor="keyword"
+                className="block text-sm font-medium text-gray-700 mb-3"
+              >
+                Crawl & Process Articles
+              </label>
+              <div className="relative">
                 <input
-                  id="url"
-                  type="url"
-                  value={newUrl}
-                  onChange={(e) => setNewUrl(e.target.value)}
-                  placeholder="https://example.com/article"
-                  className="w-full px-4 py-3 border border-gray-300 rounded-lg shadow-sm focus:outline-none focus:ring-2 focus:ring-gray-500 focus:border-gray-500 transition-colors"
+                  id="keyword"
+                  type="text"
+                  value={keyword}
+                  onChange={(e) => setKeyword(e.target.value)}
+                  placeholder="Enter keywords to crawl and process articles..."
+                  className="w-full px-4 py-4 pl-12 border border-gray-300 rounded-xl shadow-sm focus:outline-none focus:ring-2 focus:ring-gray-500 focus:border-gray-500 transition-colors text-gray-900 placeholder-gray-500"
                 />
+                <div className="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none">
+                  <svg
+                    className="h-5 w-5 text-gray-400"
+                    fill="none"
+                    stroke="currentColor"
+                    viewBox="0 0 24 24"
+                  >
+                    <path
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                      strokeWidth={2}
+                      d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"
+                    />
+                  </svg>
+                </div>
               </div>
-              <div>
-                <label
-                  htmlFor="processing-type"
-                  className="block text-sm font-medium text-gray-700 mb-2"
-                >
-                  Processing Type
-                </label>
-                <select
-                  id="processing-type"
-                  value={processingType}
-                  onChange={(e) =>
-                    setProcessingType(e.target.value as "default" | "queued")
-                  }
-                  className="w-full px-4 py-3 border border-gray-300 rounded-lg shadow-sm focus:outline-none focus:ring-2 focus:ring-gray-500 focus:border-gray-500 transition-colors"
-                >
-                  <option value="default">Immediate Processing</option>
-                  <option value="queued">Queued Processing</option>
-                </select>
-              </div>
-              <button
-                type="submit"
-                disabled={loading || !newUrl}
-                className="w-full lg:w-auto px-6 py-3 bg-gray-900 text-white font-medium rounded-lg hover:bg-gray-800 focus:outline-none focus:ring-2 focus:ring-gray-500 focus:ring-offset-2 disabled:opacity-50 disabled:cursor-not-allowed transition-colors flex items-center justify-center gap-2"
-              >
-                {loading ? (
-                  <>
-                    <div className="w-5 h-5 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
-                    Processing...
-                  </>
-                ) : (
-                  <>
-                    <svg
-                      className="w-5 h-5"
-                      fill="none"
-                      stroke="currentColor"
-                      viewBox="0 0 24 24"
-                    >
-                      <path
-                        strokeLinecap="round"
-                        strokeLinejoin="round"
-                        strokeWidth={2}
-                        d="M12 6v6m0 0v6m0-6h6m-6 0H6"
-                      />
-                    </svg>
-                    Process Article
-                  </>
-                )}
-              </button>
             </div>
-          </form>
-        </div>
 
-        {/* Error Message */}
-        {error && (
-          <div className="mb-6 p-4 bg-red-50 border border-red-200 rounded-lg">
-            <div className="flex">
+            <button
+              type="submit"
+              className="w-full bg-gray-900 text-white font-medium py-4 px-6 rounded-xl hover:bg-gray-800 focus:outline-none focus:ring-2 focus:ring-gray-500 focus:ring-offset-2 transition-colors flex items-center justify-center gap-3"
+            >
               <svg
-                className="w-5 h-5 text-red-400 mr-2 mt-0.5"
-                fill="currentColor"
-                viewBox="0 0 20 20"
-              >
-                <path
-                  fillRule="evenodd"
-                  d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.707 7.293a1 1 0 00-1.414 1.414L8.586 10l-1.293 1.293a1 1 0 101.414 1.414L10 11.414l1.293 1.293a1 1 0 001.414-1.414L11.414 10l1.293-1.293a1 1 0 00-1.414-1.414L10 8.586 8.707 7.293z"
-                  clipRule="evenodd"
-                />
-              </svg>
-              <p className="text-red-800 font-medium">{error}</p>
-            </div>
-          </div>
-        )}
-
-        {/* Articles Table */}
-        <div className="bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden">
-          <div className="px-6 py-4 border-b border-gray-200">
-            <h2 className="text-lg font-semibold text-gray-900">
-              Articles ({articles.length})
-            </h2>
-          </div>
-
-          {articles.length === 0 ? (
-            <div className="text-center py-12">
-              <svg
-                className="mx-auto h-12 w-12 text-gray-400"
+                className="w-5 h-5"
                 fill="none"
                 stroke="currentColor"
                 viewBox="0 0 24 24"
@@ -201,192 +82,126 @@ export default function Home({
                   strokeLinecap="round"
                   strokeLinejoin="round"
                   strokeWidth={2}
-                  d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"
+                  d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"
                 />
               </svg>
-              <h3 className="mt-2 text-sm font-medium text-gray-900">
-                No articles
+              Crawl & Process
+            </button>
+          </form>
+
+          {/* Divider */}
+          <div className="relative mb-8">
+            <div className="absolute inset-0 flex items-center">
+              <div className="w-full border-t border-gray-200"></div>
+            </div>
+            <div className="relative flex justify-center text-sm">
+              <span className="px-4 bg-white text-gray-500">or</span>
+            </div>
+          </div>
+
+          {/* View All Button */}
+          <button
+            onClick={handleViewAll}
+            className="w-full bg-white text-gray-900 font-medium py-4 px-6 rounded-xl border-2 border-gray-300 hover:border-gray-400 hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-gray-500 focus:ring-offset-2 transition-colors flex items-center justify-center gap-3"
+          >
+            <svg
+              className="w-5 h-5"
+              fill="none"
+              stroke="currentColor"
+              viewBox="0 0 24 24"
+            >
+              <path
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                strokeWidth={2}
+                d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"
+              />
+            </svg>
+            View All Articles
+          </button>
+        </div>
+
+        {/* Features Section */}
+        <div className="mt-12 grid grid-cols-1 md:grid-cols-3 gap-6">
+          <div className="text-center">
+            <div className="bg-white rounded-xl p-6 shadow-sm border border-gray-200">
+              <div className="w-12 h-12 bg-gray-100 rounded-lg flex items-center justify-center mx-auto mb-4">
+                <svg
+                  className="w-6 h-6 text-gray-600"
+                  fill="none"
+                  stroke="currentColor"
+                  viewBox="0 0 24 24"
+                >
+                  <path
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    strokeWidth={2}
+                    d="M21 12a9 9 0 01-9 9m9-9a9 9 0 00-9-9m9 9H3m9 9v-9m0-9v9"
+                  />
+                </svg>
+              </div>
+              <h3 className="text-sm font-medium text-gray-900 mb-2">
+                Multi-Source Crawling
               </h3>
-              <p className="mt-1 text-sm text-gray-500">
-                Get started by processing your first article.
+              <p className="text-xs text-gray-500">
+                Extract content from various platforms and sources
               </p>
             </div>
-          ) : (
-            <div className="overflow-x-auto">
-              <table className="min-w-full divide-y divide-gray-200">
-                <thead className="bg-gray-50">
-                  <tr>
-                    <th className="px-6 py-4 text-left text-xs font-medium text-gray-500 uppercase tracking-wider w-1/4">
-                      Article
-                    </th>
-                    <th className="px-6 py-4 text-left text-xs font-medium text-gray-500 uppercase tracking-wider w-1/4">
-                      Source
-                    </th>
-                    <th className="px-6 py-4 text-left text-xs font-medium text-gray-500 uppercase tracking-wider w-1/6">
-                      Status
-                    </th>
-                    <th className="px-6 py-4 text-left text-xs font-medium text-gray-500 uppercase tracking-wider w-1/3">
-                      Actions
-                    </th>
-                  </tr>
-                </thead>
-                <tbody className="bg-white divide-y divide-gray-200">
-                  {articles.map((article) => (
-                    <tr
-                      key={article._id}
-                      className="hover:bg-gray-50 transition-colors"
-                    >
-                      <td className="px-6 py-4">
-                        <div className="flex flex-col">
-                          <div className="text-sm font-medium text-gray-900 mb-1">
-                            {article.title || "Untitled"}
-                          </div>
-                          <div className="text-sm text-gray-500">
-                            {new Date(
-                              article.metadata.crawledAt
-                            ).toLocaleDateString("en-US", {
-                              year: "numeric",
-                              month: "short",
-                              day: "numeric",
-                              hour: "2-digit",
-                              minute: "2-digit",
-                            })}
-                          </div>
-                        </div>
-                      </td>
-                      <td className="px-6 py-4">
-                        <a
-                          href={article.url}
-                          target="_blank"
-                          rel="noopener noreferrer"
-                          className="text-sm text-gray-600 hover:text-gray-900 transition-colors truncate block max-w-xs"
-                        >
-                          {article.url}
-                        </a>
-                      </td>
-                      <td className="px-6 py-4">
-                        {processedContents[article._id] ? (
-                          <span
-                            className={`inline-flex px-3 py-1 text-xs font-medium rounded-full border ${getStatusColor(
-                              processedContents[article._id].status
-                            )}`}
-                          >
-                            {processedContents[article._id].status}
-                          </span>
-                        ) : (
-                          <span className="inline-flex px-3 py-1 text-xs font-medium rounded-full bg-gray-100 text-gray-800 border border-gray-200">
-                            Not Processed
-                          </span>
-                        )}
-                      </td>
-                      <td className="px-6 py-4">
-                        <div className="flex space-x-2">
-                          <button
-                            onClick={() => handleViewArticle(article._id)}
-                            className="text-sm text-gray-600 hover:text-gray-900 font-medium transition-colors flex items-center gap-1 px-3 py-1 border border-gray-300 rounded-md hover:border-gray-400"
-                          >
-                            <svg
-                              className="w-4 h-4"
-                              fill="none"
-                              stroke="currentColor"
-                              viewBox="0 0 24 24"
-                            >
-                              <path
-                                strokeLinecap="round"
-                                strokeLinejoin="round"
-                                strokeWidth={2}
-                                d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"
-                              />
-                            </svg>
-                            View Article
-                          </button>
-                          {processedContents[article._id] && (
-                            <button
-                              onClick={() =>
-                                handleViewProcessedArticle(
-                                  processedContents[article._id]._id
-                                )
-                              }
-                              className="text-sm text-gray-600 hover:text-gray-900 font-medium transition-colors flex items-center gap-1 px-3 py-1 border border-gray-300 rounded-md hover:border-gray-400"
-                            >
-                              <svg
-                                className="w-4 h-4"
-                                fill="none"
-                                stroke="currentColor"
-                                viewBox="0 0 24 24"
-                              >
-                                <path
-                                  strokeLinecap="round"
-                                  strokeLinejoin="round"
-                                  strokeWidth={2}
-                                  d="M9 5H7a2 2 0 00-2 2v10a2 2 0 002 2h8a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2"
-                                />
-                              </svg>
-                              View Processed
-                            </button>
-                          )}
-                        </div>
-                      </td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
+          </div>
+
+          <div className="text-center">
+            <div className="bg-white rounded-xl p-6 shadow-sm border border-gray-200">
+              <div className="w-12 h-12 bg-gray-100 rounded-lg flex items-center justify-center mx-auto mb-4">
+                <svg
+                  className="w-6 h-6 text-gray-600"
+                  fill="none"
+                  stroke="currentColor"
+                  viewBox="0 0 24 24"
+                >
+                  <path
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    strokeWidth={2}
+                    d="M3 5h12M9 3v2m1.048 9.5A18.022 18.022 0 016.412 9m6.088 9h7M11 21l5-10 5 10M12.751 5C11.783 10.77 8.07 15.61 3 18.129"
+                  />
+                </svg>
+              </div>
+              <h3 className="text-sm font-medium text-gray-900 mb-2">
+                Intelligent Translation
+              </h3>
+              <p className="text-xs text-gray-500">
+                AI-powered translation with context preservation
+              </p>
             </div>
-          )}
+          </div>
+
+          <div className="text-center">
+            <div className="bg-white rounded-xl p-6 shadow-sm border border-gray-200">
+              <div className="w-12 h-12 bg-gray-100 rounded-lg flex items-center justify-center mx-auto mb-4">
+                <svg
+                  className="w-6 h-6 text-gray-600"
+                  fill="none"
+                  stroke="currentColor"
+                  viewBox="0 0 24 24"
+                >
+                  <path
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    strokeWidth={2}
+                    d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z"
+                  />
+                </svg>
+              </div>
+              <h3 className="text-sm font-medium text-gray-900 mb-2">
+                Content Analysis
+              </h3>
+              <p className="text-xs text-gray-500">
+                Summarize and analyze content automatically
+              </p>
+            </div>
+          </div>
         </div>
       </div>
     </div>
   );
 }
-
-export const getServerSideProps: GetServerSideProps = async () => {
-  try {
-    const DATA_PERSISTENCE_URL =
-      process.env.NEXT_PUBLIC_DATA_PERSISTENCE_URL ||
-      "http://data-persistence:3000";
-    const response = await fetch(`${DATA_PERSISTENCE_URL}/api/content`);
-
-    if (!response.ok) {
-      throw new Error("Failed to fetch articles");
-    }
-
-    const data = await response.json();
-    const articles = data.contents;
-
-    // Fetch processed content for each article
-    const processedContents: { [key: string]: ProcessedContent } = {};
-    await Promise.all(
-      articles.map(async (article: Article) => {
-        try {
-          const processedResponse = await fetch(
-            `${DATA_PERSISTENCE_URL}/api/processed-content/${article._id}`
-          );
-          if (processedResponse.ok) {
-            const processedContent = await processedResponse.json();
-            processedContents[article._id] = processedContent;
-          }
-        } catch (error) {
-          console.error(
-            `Error fetching processed content for article ${article._id}:`,
-            error
-          );
-        }
-      })
-    );
-
-    return {
-      props: {
-        initialArticles: articles,
-        processedContents,
-      },
-    };
-  } catch (error) {
-    console.error("Error fetching articles:", error);
-    return {
-      props: {
-        initialArticles: [],
-        processedContents: {},
-      },
-    };
-  }
-};
