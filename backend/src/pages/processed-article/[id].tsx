@@ -67,20 +67,21 @@ function ProcessedContentHeader({
 
   const handleQueueProcess = async () => {
     try {
-      const response = await fetch("/api/content-process/queue", {
+      const response = await fetch("/api/content-translate/queue", {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
         },
         body: JSON.stringify({
-          articleId: processedContent._id,
+          processedContentId: processedContent._id,
+          targetLanguage: selectedLanguage,
         }),
       });
 
       if (response.ok) {
         const data = await response.json();
         alert(
-          `Job added to queue with ID: ${data.jobId}. Queue name: content-processing`
+          `Job added to queue with ID: ${data.jobId}. Queue name: content-translation`
         );
       } else {
         alert("Failed to add job to queue");
