@@ -5,7 +5,7 @@ export default function Header() {
     <div className="bg-gray-800 px-8 py-4">
       <div className="flex items-center justify-between">
         <Link href="/" className="text-white text-2xl font-bold">
-          translayze
+          Translayze
         </Link>
         <nav className="flex items-center space-x-6">
           <Link
