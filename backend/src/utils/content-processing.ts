@@ -58,7 +58,10 @@ export const processContent = async (
     processedContent = await getCombinedHtml(ocrResults, article.content);
   }
 
-  const polishedContent = await getPolishedContent(processedContent);
+  const polishedContent = await getPolishedContent(
+    article.title,
+    processedContent
+  );
 
   const topicOptions = await getTopicNames();
   const { summary, topic, isHighQuality } = await getSummary(
@@ -154,9 +157,13 @@ async function getCombinedHtml(
   return combinedHtml;
 }
 
-async function getPolishedContent(content: string): Promise<string> {
+async function getPolishedContent(
+  title: string,
+  content: string
+): Promise<string> {
   console.log("start get polished content");
   const polishedContentResponse = await axios.post(`${DS_SERVICE_URL}/polish`, {
+    title,
     content,
   });
   console.log("polishedContentResponse", polishedContentResponse.data);
