@@ -32,7 +32,7 @@ export default function Home({
     try {
       if (processingType === "queued") {
         // Send to queue endpoint
-        const queueResponse = await axios.post("/api/articles/queue", {
+        const queueResponse = await axios.post("/api/content-crawl/queue", {
           url: newUrl,
         });
         // For queued processing, we don't add to articles list immediately
@@ -40,7 +40,7 @@ export default function Home({
         console.log("Job added to queue:", queueResponse.data);
       } else {
         // Send to default endpoint for immediate processing
-        const articleResponse = await axios.post("/api/articles", {
+        const articleResponse = await axios.post("/api/content-crawl", {
           url: newUrl,
         });
         setArticles((prevArticles) => [articleResponse.data, ...prevArticles]);
