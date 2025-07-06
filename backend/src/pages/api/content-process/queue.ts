@@ -2,20 +2,24 @@
 //It is called when the user wants to process an existing article
 import { ContentProcessingQueue } from "@/src/queue_workers/contentProcessingQueue";
 import { NextApiRequest, NextApiResponse } from "next";
-
+import { processContent } from "@/src/utils/content-processing";
+import { Language, ProcessedContent } from "@/src/common.type";
 export default async function handler(
   req: NextApiRequest,
   res: NextApiResponse
 ) {
   if (req.method === "POST") {
     try {
-      const { articleId } = req.body;
+      const { articleId, hasChainReaction = false } = req.body;
       if (!articleId) {
         throw new Error("Article ID is required");
       }
 
       // Create the content processing queue
-      const queue = await ContentProcessingQueue.createQueue();
+      const processContentFunction = processContentAugmented(hasChainReaction);
+      const queue = await ContentProcessingQueue.createQueue(
+        processContentFunction
+      );
 
       // Add the job to the queue
       const job = await queue.addJob("process-content", {
@@ -37,4 +41,29 @@ export default async function handler(
   } else {
     return res.status(405).json({ message: "Method not allowed" });
   }
+}
+
+function processContentAugmented(
+  hasChainReaction: boolean
+): (articleId: string) => Promise<ProcessedContent> {
+  if (!hasChainReaction) {
+    return processContent;
+  }
+  async function processContentWithChainReaction(articleId: string) {
+    const baseUrl = `http://localhost:${process.env.PORT || 3000}`;
+    const processedContent: ProcessedContent = await processContent(articleId);
+    const id = processedContent._id;
+    const targeLanguageList: Language[] = ["english"];
+    for (const targetLanguage of targeLanguageList) {
+      const response = await fetch(`${baseUrl}/api/content-translate/queue`, {
+        method: "POST",
+        body: JSON.stringify({ processedContentId: id, targetLanguage }),
+      });
+      if (!response.ok) {
+        throw new Error("Failed to add content to queue");
+      }
+    }
+    return processedContent;
+  }
+  return processContentWithChainReaction;
 }

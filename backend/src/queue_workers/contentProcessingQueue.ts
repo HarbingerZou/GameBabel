@@ -1,5 +1,4 @@
 import { JobQueue, JobData, JobResult } from "./JobQueue";
-import { processContent } from "../utils/content-processing";
 import { ProcessedContent } from "../common.type";
 
 export interface ContentProcessingData extends JobData {
@@ -15,9 +14,9 @@ export interface ContentProcessingResult extends JobResult {
 }
 
 export class ContentProcessingQueue {
-  public static async createQueue(): Promise<
-    JobQueue<ContentProcessingData, ContentProcessingResult>
-  > {
+  public static async createQueue(
+    processContent: (articleId: string) => Promise<ProcessedContent>
+  ): Promise<JobQueue<ContentProcessingData, ContentProcessingResult>> {
     const output = await JobQueue.createQueue<
       ContentProcessingData,
       ContentProcessingResult

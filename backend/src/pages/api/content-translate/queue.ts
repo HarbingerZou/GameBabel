@@ -2,6 +2,7 @@
 //It is called when the user wants to translate an existing processed content
 import { ContentTranslationQueue } from "@/src/queue_workers/contentTranslationQueue";
 import { NextApiRequest, NextApiResponse } from "next";
+import { translateContent } from "@/src/utils/content-translate";
 
 export default async function handler(
   req: NextApiRequest,
@@ -20,7 +21,7 @@ export default async function handler(
       }
 
       // Create the content translation queue
-      const queue = await ContentTranslationQueue.createQueue();
+      const queue = await ContentTranslationQueue.createQueue(translateContent);
 
       // Add the job to the queue
       const job = await queue.addJob("translate-content", {

@@ -1,5 +1,4 @@
 import { JobQueue, JobData, JobResult } from "./JobQueue";
-import { translateContent } from "../utils/content-translate";
 import { Language, Translation } from "../common.type";
 
 export interface ContentTranslationData extends JobData {
@@ -17,9 +16,12 @@ export interface ContentTranslationResult extends JobResult {
 }
 
 export class ContentTranslationQueue {
-  public static async createQueue(): Promise<
-    JobQueue<ContentTranslationData, ContentTranslationResult>
-  > {
+  public static async createQueue(
+    translateContent: (
+      processedContentId: string,
+      targetLanguage: Language
+    ) => Promise<Translation>
+  ): Promise<JobQueue<ContentTranslationData, ContentTranslationResult>> {
     const output = await JobQueue.createQueue<
       ContentTranslationData,
       ContentTranslationResult

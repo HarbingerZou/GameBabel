@@ -1,5 +1,4 @@
 import { JobQueue, JobData, JobResult } from "./JobQueue";
-import { crawlContent } from "../utils/content-crawling";
 import { Article } from "../common.type";
 
 export interface ContentCrawlingData extends JobData {
@@ -16,9 +15,9 @@ export interface ContentCrawlingResult extends JobResult {
 }
 
 export class ContentCrawlingQueue {
-  public static async createQueue(): Promise<
-    JobQueue<ContentCrawlingData, ContentCrawlingResult>
-  > {
+  public static async createQueue(
+    crawlContent: (url: string) => Promise<Article>
+  ): Promise<JobQueue<ContentCrawlingData, ContentCrawlingResult>> {
     const output = await JobQueue.createQueue<
       ContentCrawlingData,
       ContentCrawlingResult
