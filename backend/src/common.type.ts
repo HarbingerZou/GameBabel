@@ -69,6 +69,19 @@ export interface OCRResult {
   success: boolean;
 }
 
+export interface BatchedCrawlBase {
+  title: string;
+  link: string;
+}
+
+type SearchType = "search" | "user-articles";
+export interface SearchResponse {
+  type: SearchType;
+  articles: BatchedCrawlBase[];
+  totalResults: number;
+  searchUrl: string;
+}
+
 export type Language =
   | "english"
   | "chinese"

@@ -1,5 +1,7 @@
 import { NextApiRequest, NextApiResponse } from "next";
 import axios from "axios";
+import { BatchedCrawlBase, SearchResponse } from "../../../common.type";
+import { crawlContent } from "@/src/utils/content-crawling";
 
 const CRAWLER_URL =
   process.env.NEXT_PUBLIC_CRAWLER_URL || "http://crawler:3000";
@@ -35,7 +37,7 @@ export default async function handler(
       throw new Error(`Crawler API returned status ${crawlerResponse.status}`);
     }
 
-    const searchResults = crawlerResponse.data;
+    const searchResults: SearchResponse = crawlerResponse.data;
 
     // Process the search results and trigger article processing for each found article
     if (searchResults.articles && searchResults.articles.length > 0) {
