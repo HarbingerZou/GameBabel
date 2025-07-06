@@ -53,10 +53,17 @@ function crawlContentAugmented(
   async function crawlContentWithChainReaction(url: string) {
     const baseUrl = `http://localhost:${process.env.PORT || 3000}`;
     const article: Article = await crawlContent(url);
+    console.log("Article:", article);
     const id = article._id;
+    console.log("Using article ID:", id);
+    const requestBody = { articleId: id, hasChainReaction: true };
+    console.log("Sending request body:", JSON.stringify(requestBody, null, 2));
     const response = await fetch(`${baseUrl}/api/content-process/queue`, {
       method: "POST",
-      body: JSON.stringify({ articleId: id, hasChainReaction: true }),
+      headers: {
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify(requestBody),
     });
     if (!response.ok) {
       throw new Error("Failed to add content to queue");

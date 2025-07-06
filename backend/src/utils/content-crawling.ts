@@ -60,8 +60,6 @@ export const crawlContent = async (url: string): Promise<Article> => {
     },
   };
 
-  console.log("Content to store:", JSON.stringify(contentToStore, null, 2));
-
   // Store the crawled content in data-persistence
   const storeResponse = await fetch(`${DATA_PERSISTENCE_URL}/api/content`, {
     method: "POST",

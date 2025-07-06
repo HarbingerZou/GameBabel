@@ -23,5 +23,5 @@ export const defaultWorkerOptions: WorkerOptions = {
     port: parseInt(process.env.REDIS_PORT || "6379"),
     password: process.env.REDIS_PASSWORD,
   },
-  concurrency: 1, // Process only 1 job at a time
+  concurrency: 4, // Process only 1 job at a time
 };

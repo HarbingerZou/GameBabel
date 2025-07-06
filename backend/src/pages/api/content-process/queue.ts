@@ -10,7 +10,10 @@ export default async function handler(
 ) {
   if (req.method === "POST") {
     try {
-      const { articleId, hasChainReaction = false } = req.body;
+      console.log("Content-process queue request body:", req.body);
+      const { articleId, hasChainReaction } = req.body;
+      console.log("Extracted articleId:", articleId);
+      console.log("ArticleId type:", typeof articleId);
       if (!articleId) {
         throw new Error("Article ID is required");
       }
@@ -55,9 +58,10 @@ function processContentAugmented(
     const id = processedContent._id;
     const targeLanguageList: Language[] = ["english"];
     for (const targetLanguage of targeLanguageList) {
+      const requestBody = { processedContentId: id, targetLanguage };
       const response = await fetch(`${baseUrl}/api/content-translate/queue`, {
         method: "POST",
-        body: JSON.stringify({ processedContentId: id, targetLanguage }),
+        body: JSON.stringify(requestBody),
       });
       if (!response.ok) {
         throw new Error("Failed to add content to queue");
