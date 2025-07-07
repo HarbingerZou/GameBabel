@@ -27,17 +27,12 @@ export const translateContent = async (
     );
 
   // Store the translation
-  await storeTranslation(
+  const translationResponse: Translation = await storeTranslation(
     processedContent,
     targetLanguage,
     translatedContent,
     translatedTitle,
     translatedSummary
-  );
-
-  const translationResponse: Translation = await getTranslation(
-    processedContent._id,
-    targetLanguage
   );
 
   return translationResponse;
@@ -104,7 +99,7 @@ async function storeTranslation(
   translatedContent: string,
   title: string,
   summary: string
-): Promise<void> {
+): Promise<Translation> {
   const { _id } = processedContent;
   try {
     const response = await axios.post(
@@ -131,8 +126,9 @@ async function storeTranslation(
     if (response.status !== 201) {
       throw new Error(`Failed to store translation: ${response.statusText}`);
     }
-
+    const translationResponse = response.data;
     console.log("Translation stored successfully");
+    return translationResponse;
   } catch (error) {
     console.error("Error storing translation:", error);
     throw error;

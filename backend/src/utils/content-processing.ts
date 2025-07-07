@@ -68,7 +68,7 @@ export const processContent = async (
     polishedContent,
     topicOptions
   );
-  await storeProcessedContent(
+  const processedContentResponse = await storeProcessedContent(
     article,
     polishedContent,
     article.language,
@@ -76,9 +76,6 @@ export const processContent = async (
     topic,
     isHighQuality
   );
-
-  // Return the processed content
-  const processedContentResponse = await getProcessedContent(articleId);
   return processedContentResponse;
 };
 
@@ -202,7 +199,7 @@ async function storeProcessedContent(
   summary: string,
   topic: string,
   isHighQuality: boolean
-): Promise<void> {
+): Promise<ProcessedContent> {
   try {
     console.log("start store processed content");
     // Get the original article to get required fields
@@ -234,8 +231,9 @@ async function storeProcessedContent(
         `Failed to store processed content: ${response.statusText}`
       );
     }
-
+    const processedContentResponse = response.data;
     console.log("Processed content stored successfully");
+    return processedContentResponse;
   } catch (error) {
     console.error("Error storing processed content:", error);
     throw error;

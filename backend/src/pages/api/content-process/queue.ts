@@ -61,6 +61,9 @@ function processContentAugmented(
       const requestBody = { processedContentId: id, targetLanguage };
       const response = await fetch(`${baseUrl}/api/content-translate/queue`, {
         method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
         body: JSON.stringify(requestBody),
       });
       if (!response.ok) {
