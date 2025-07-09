@@ -20,8 +20,10 @@ export default async function handler(
 
       // Create the content processing queue
       const processContentFunction = processContentAugmented(hasChainReaction);
+      const queueNameAffix = hasChainReaction ? "chain-reaction" : "";
       const queue = await ContentProcessingQueue.createQueue(
-        processContentFunction
+        processContentFunction,
+        queueNameAffix
       );
 
       // Add the job to the queue

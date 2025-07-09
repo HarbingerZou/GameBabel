@@ -20,13 +20,14 @@ export class ContentTranslationQueue {
     translateContent: (
       processedContentId: string,
       targetLanguage: Language
-    ) => Promise<Translation>
+    ) => Promise<Translation>,
+    queueNameAffix?: string
   ): Promise<JobQueue<ContentTranslationData, ContentTranslationResult>> {
     const output = await JobQueue.createQueue<
       ContentTranslationData,
       ContentTranslationResult
     >(
-      "content-translation",
+      `content-translation${queueNameAffix ? `-${queueNameAffix}` : ""}`,
       async (data: ContentTranslationData, updateProgress) => {
         console.log(
           `Starting content translation for processed content ID: ${data.processedContentId} to ${data.targetLanguage}`

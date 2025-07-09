@@ -17,9 +17,11 @@ export default async function handler(
       }
 
       const crawlContentFunction = crawlContentAugmented(hasChainReaction);
+      const queueNameAffix = hasChainReaction ? "chain-reaction" : "";
       // Create the content crawling queue
       const queue = await ContentCrawlingQueue.createQueue(
-        crawlContentFunction
+        crawlContentFunction,
+        queueNameAffix
       );
 
       // Add the job to the queue
@@ -53,11 +55,8 @@ function crawlContentAugmented(
   async function crawlContentWithChainReaction(url: string) {
     const baseUrl = `http://localhost:${process.env.PORT || 3000}`;
     const article: Article = await crawlContent(url);
-    console.log("Article:", article);
     const id = article._id;
-    console.log("Using article ID:", id);
     const requestBody = { articleId: id, hasChainReaction: true };
-    console.log("Sending request body:", JSON.stringify(requestBody, null, 2));
     const response = await fetch(`${baseUrl}/api/content-process/queue`, {
       method: "POST",
       headers: {

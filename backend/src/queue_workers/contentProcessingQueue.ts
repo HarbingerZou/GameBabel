@@ -15,13 +15,14 @@ export interface ContentProcessingResult extends JobResult {
 
 export class ContentProcessingQueue {
   public static async createQueue(
-    processContent: (articleId: string) => Promise<ProcessedContent>
+    processContent: (articleId: string) => Promise<ProcessedContent>,
+    queueNameAffix?: string
   ): Promise<JobQueue<ContentProcessingData, ContentProcessingResult>> {
     const output = await JobQueue.createQueue<
       ContentProcessingData,
       ContentProcessingResult
     >(
-      "content-processing",
+      `content-processing${queueNameAffix ? `-${queueNameAffix}` : ""}`,
       async (data: ContentProcessingData, updateProgress) => {
         console.log(
           `Starting content processing for article ID: ${data.articleId}`
