@@ -142,7 +142,7 @@ async function getCombinedHtml(
     };
   });
   let combineResponse: any = await axios.post(
-    `${DS_SERVICE_URL}/combine-ocr-html`,
+    `${DS_SERVICE_URL}/api/combine-ocr-html`,
     {
       originalHtml: originalHtml,
       ocrResults: trimmedOcrResults,
@@ -159,10 +159,13 @@ async function getPolishedContent(
   content: string
 ): Promise<string> {
   console.log("start get polished content");
-  const polishedContentResponse = await axios.post(`${DS_SERVICE_URL}/polish`, {
-    title,
-    content,
-  });
+  const polishedContentResponse = await axios.post(
+    `${DS_SERVICE_URL}/api/polish`,
+    {
+      title,
+      content,
+    }
+  );
   console.log("polishedContentResponse", polishedContentResponse.data);
   return polishedContentResponse.data.content;
 }
@@ -180,7 +183,7 @@ async function getSummary(
   topicOptions: string[]
 ): Promise<{ isHighQuality: boolean; summary: string; topic: string }> {
   console.log("start get summary");
-  const summaryResponse = await axios.post(`${DS_SERVICE_URL}/summarize`, {
+  const summaryResponse = await axios.post(`${DS_SERVICE_URL}/api/summarize`, {
     content,
     topicOptions,
   });

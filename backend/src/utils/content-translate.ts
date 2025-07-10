@@ -74,7 +74,7 @@ async function getTranslatedHtml(
 }> {
   console.log("start translate html");
   const translateResponse = await axios.post(
-    `${DS_SERVICE_URL}/translate-html`,
+    `${DS_SERVICE_URL}/api/translate-html`,
     {
       htmlContent: html,
       language: language,
