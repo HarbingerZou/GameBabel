@@ -82,6 +82,11 @@ export interface SearchResponse {
   searchUrl: string;
 }
 
+export interface OcrHTML {
+  imageUrl: string;
+  ocrHtml: string;
+}
+
 export type Language =
   | "english"
   | "chinese"

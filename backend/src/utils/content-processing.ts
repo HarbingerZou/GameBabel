@@ -1,5 +1,6 @@
 import type {
   Article,
+  OcrHTML,
   OCRResult,
   OCRResultData,
   ProcessedContent,
@@ -123,6 +124,60 @@ async function getOcrResults(
       return null;
     }*/
   return data;
+}
+
+async function getOcrHtmls(
+  ocrResults: { imageUrl: string; data: OCRResultData[] }[]
+): Promise<OcrHTML[]> {
+  console.log("start get OCR HTML for", ocrResults.length, "images");
+
+  // Create promises for parallel processing
+  const transformPromises = ocrResults.map(async (ocrResult) => {
+    try {
+      console.log(`Processing OCR HTML for image: ${ocrResult.imageUrl}`);
+
+      // Transform OCR data to the format expected by transform-ocr endpoint
+      const ocrData: OCRResultData[] = ocrResult.data;
+
+      const transformResponse = await axios.post(
+        `${DS_SERVICE_URL}/api/transform-ocr`,
+        {
+          ocrResult: ocrData,
+        }
+      );
+
+      const transformedHtml = transformResponse.data.htmlContent;
+      console.log(
+        `Transformed HTML length for ${ocrResult.imageUrl}:`,
+        transformedHtml?.length || 0
+      );
+
+      return {
+        imageUrl: ocrResult.imageUrl,
+        ocrHtml: transformedHtml || "",
+      };
+    } catch (error) {
+      console.error(
+        `Failed to transform OCR for image ${ocrResult.imageUrl}:`,
+        error
+      );
+      // Return empty result for failed transformations
+      return {
+        imageUrl: ocrResult.imageUrl,
+        ocrHtml: "",
+      };
+    }
+  });
+
+  // Wait for all transformations to complete
+  const ocrHtmlResults = await Promise.all(transformPromises);
+
+  console.log(
+    "Completed OCR HTML transformation for",
+    ocrHtmlResults.length,
+    "images"
+  );
+  return ocrHtmlResults;
 }
 
 async function getCombinedHtml(
