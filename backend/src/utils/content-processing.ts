@@ -20,50 +20,22 @@ export const processContent = async (
   articleId: string
 ): Promise<ProcessedContent> => {
   const article: Article = await getArticle(articleId);
-  const imageUrls: string[] = extractImageUrls(article.content);
-  console.log("Found image URLs:", imageUrls);
-
-  // Convert relative URL to absolute URL if needed
-  const absoluteImageUrls = imageUrls.map((imageUrl: string) =>
-    imageUrl.startsWith("//") ? `https:${imageUrl}` : imageUrl
-  );
-  console.log("Absolute image URLs:", absoluteImageUrls);
-
-  // Process images sequentially
-  const ocrResults: { imageUrl: string; data: OCRResultData[] }[] = [];
-  console.log("start get ocr results");
-  for (let index = 0; index < absoluteImageUrls.length; index++) {
-    const imageUrl = absoluteImageUrls[index];
-    try {
-      console.log(`Processing image: ${imageUrl}, index: ${index}`);
-
-      const data = await getOcrResults(articleId, imageUrl);
-      ocrResults.push({
-        imageUrl,
-        data,
-      });
-      console.log(`Processed image: ${imageUrl}, index: ${index}`);
-    } catch (error) {
-      console.error(`Failed to process image ${imageUrl}:`, error);
-    }
-  }
-
-  const noTextInPicture = ocrResults.every(
-    (ocrResult) => ocrResult.data.length === 0
-  );
-
-  let processedContent = null;
-  if (noTextInPicture) {
-    processedContent = article.content;
+  const [ocrHtmls, cleanedHtml] = await Promise.all([
+    imageProcessingBranch(article),
+    textProcessingBranch(article),
+  ]);
+  let processedContent: string | null = null;
+  if (ocrHtmls.length > 0) {
+    processedContent = await getMergedHtml(ocrHtmls, cleanedHtml);
   } else {
-    processedContent = await getCombinedHtml(ocrResults, article.content);
+    processedContent = cleanedHtml;
   }
 
   const polishedContent = await getPolishedContent(
     article.title,
     processedContent
   );
-
+  /*
   const topicOptions = await getTopicNames();
   const { summary, topic, isHighQuality } = await getSummary(
     polishedContent,
@@ -77,8 +49,48 @@ export const processContent = async (
     topic,
     isHighQuality
   );
+  */
+  const processedContentResponse = directReturn(article, polishedContent);
   return processedContentResponse;
 };
+
+async function imageProcessingBranch(article: Article): Promise<OcrHTML[]> {
+  const imageUrls: string[] = extractImageUrls(article.content);
+  console.log("Found image URLs:", imageUrls);
+  if (imageUrls.length === 0) {
+    return [];
+  }
+  // Convert relative URL to absolute URL if needed
+  const absoluteImageUrls = imageUrls.map((imageUrl: string) =>
+    imageUrl.startsWith("//") ? `https:${imageUrl}` : imageUrl
+  );
+  console.log("Absolute image URLs:", absoluteImageUrls);
+
+  const ocrResults: { imageUrl: string; data: OCRResultData[] }[] = [];
+  console.log("start get ocr results");
+  for (let index = 0; index < absoluteImageUrls.length; index++) {
+    const imageUrl = absoluteImageUrls[index];
+    try {
+      console.log(`Processing image: ${imageUrl}, index: ${index}`);
+
+      const data = await getOcrResults(article._id, imageUrl);
+      ocrResults.push({
+        imageUrl,
+        data,
+      });
+      console.log(`Processed image: ${imageUrl}, index: ${index}`);
+    } catch (error) {
+      console.error(`Failed to process image ${imageUrl}:`, error);
+    }
+  }
+  const ocrHtmls = await getOcrHtmls(ocrResults);
+  return ocrHtmls;
+}
+
+async function textProcessingBranch(article: Article): Promise<string> {
+  const cleanedHtml = await getCleanedHtml(article.content);
+  return cleanedHtml;
+}
 
 async function getArticle(articleId: string): Promise<Article> {
   const articleResponse = await fetch(
@@ -180,33 +192,45 @@ async function getOcrHtmls(
   return ocrHtmlResults;
 }
 
-async function getCombinedHtml(
-  ocrResults: { imageUrl: string; data: OCRResultData[] }[],
+async function getCleanedHtml(htmlContent: string): Promise<string> {
+  console.log("start get cleaned HTML");
+
+  try {
+    const cleanedResponse = await axios.post(
+      `${DS_SERVICE_URL}/api/remove-styling`,
+      {
+        htmlContent: htmlContent,
+      }
+    );
+
+    const cleanedHtml = cleanedResponse.data.content;
+    console.log("Cleaned HTML length:", cleanedHtml?.length || 0);
+    return cleanedHtml;
+  } catch (error) {
+    console.error("Failed to clean HTML content:", error);
+    // Return original content if cleaning fails
+    return htmlContent;
+  }
+}
+
+async function getMergedHtml(
+  ocrHtmls: OcrHTML[],
   originalHtml: string
 ): Promise<string> {
-  console.log("start combine ocr html");
-  const trimmedOcrResults = ocrResults.map((ocrResult) => {
-    return {
-      imageUrl: ocrResult.imageUrl,
-      data: ocrResult.data.map((data) => {
-        return {
-          boundingBox: data.boundingBox,
-          text: data.text,
-        };
-      }),
-    };
-  });
-  let combineResponse: any = await axios.post(
-    `${DS_SERVICE_URL}/api/combine-ocr-html`,
+  console.log("start merge OCR HTML");
+
+  // Then, merge the original HTML with the OCR HTML results
+  const mergeResponse = await axios.post(
+    `${DS_SERVICE_URL}/api/merge-ocr-html`,
     {
-      originalHtml: originalHtml,
-      ocrResults: trimmedOcrResults,
+      content: originalHtml,
+      ocrHtmls: ocrHtmls,
     }
   );
 
-  const combinedHtml = combineResponse.data.combinedHtml;
-  console.log("Combined HTML length:", combinedHtml.length);
-  return combinedHtml;
+  const mergedHtml = mergeResponse.data.mergedHtml;
+  console.log("Merged HTML length:", mergedHtml.length);
+  return mergedHtml;
 }
 
 async function getPolishedContent(
@@ -298,11 +322,25 @@ async function storeProcessedContent(
   }
 }
 
-async function getProcessedContent(
-  articleId: string
-): Promise<ProcessedContent> {
-  const response = await axios.get(
-    `${DATA_PERSISTENCE_URL}/api/processed-content/${articleId}`
-  );
-  return response.data;
+function directReturn(article: Article, content: string): ProcessedContent {
+  return {
+    _id: "",
+    originalContentId: article._id,
+    title: article.title,
+    author: article.author,
+    url: article.url,
+    summary: "",
+    content: content,
+    language: article.language,
+    source: article.source,
+    status: "pending",
+    metadata: {
+      isHighQuality: false,
+      topic: "",
+      crawledType: article.metadata.crawledType,
+      processedAt: new Date(),
+      wordCount: content.split(/\s+/).length,
+      processingVersion: 1,
+    },
+  };
 }
