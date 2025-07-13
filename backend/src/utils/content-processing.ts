@@ -4,6 +4,7 @@ import type {
   OCRResult,
   OCRResultData,
   ProcessedContent,
+  Summary,
 } from "../common.type";
 import { extractImageUrls } from "./image_processing";
 import axios from "axios";
@@ -35,9 +36,9 @@ export const processContent = async (
     article.title,
     processedContent
   );
-  /*
+
   const topicOptions = await getTopicNames();
-  const { summary, topic, isHighQuality } = await getSummary(
+  const { summary, topic, qualityScore } = await getSummary(
     polishedContent,
     topicOptions
   );
@@ -47,10 +48,10 @@ export const processContent = async (
     article.language,
     summary,
     topic,
-    isHighQuality
+    qualityScore
   );
-  */
-  const processedContentResponse = directReturn(article, polishedContent);
+
+  //const processedContentResponse = directReturn(article, polishedContent);
   return processedContentResponse;
 };
 
@@ -260,15 +261,18 @@ async function getTopicNames(): Promise<string[]> {
 async function getSummary(
   content: string,
   topicOptions: string[]
-): Promise<{ isHighQuality: boolean; summary: string; topic: string }> {
+): Promise<Summary> {
   console.log("start get summary");
-  const summaryResponse = await axios.post(`${DS_SERVICE_URL}/api/summarize`, {
-    content,
-    topicOptions,
-  });
+  const summaryResponse = await axios.post<Summary>(
+    `${DS_SERVICE_URL}/api/summarize`,
+    {
+      content,
+      topicOptions,
+    }
+  );
   console.log("summaryResponse", summaryResponse.data);
   return {
-    isHighQuality: summaryResponse.data.isHighQuality,
+    qualityScore: summaryResponse.data.qualityScore,
     summary: summaryResponse.data.summary,
     topic: summaryResponse.data.topic,
   };
@@ -280,7 +284,7 @@ async function storeProcessedContent(
   language: string,
   summary: string,
   topic: string,
-  isHighQuality: boolean
+  qualityScore: number
 ): Promise<ProcessedContent> {
   try {
     console.log("start store processed content");
@@ -298,7 +302,7 @@ async function storeProcessedContent(
         source: article.source,
         status: "pending",
         metadata: {
-          isHighQuality: isHighQuality,
+          qualityScore: qualityScore,
           topic: topic,
           crawledType: article.metadata.crawledType,
           processedAt: new Date(),
@@ -335,7 +339,7 @@ function directReturn(article: Article, content: string): ProcessedContent {
     source: article.source,
     status: "pending",
     metadata: {
-      isHighQuality: false,
+      qualityScore: 0,
       topic: "",
       crawledType: article.metadata.crawledType,
       processedAt: new Date(),

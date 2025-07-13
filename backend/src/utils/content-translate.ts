@@ -109,7 +109,7 @@ async function storeTranslation(
         content: translatedContent,
         status: "pending",
         metadata: {
-          isHighQuality: processedContent.metadata.isHighQuality,
+          qualityScore: processedContent.metadata.qualityScore,
           crawledType: processedContent.metadata.crawledType,
           topic: processedContent.metadata.topic,
           wordCount: processedContent.metadata.wordCount,

@@ -28,7 +28,7 @@ export interface ProcessedContent {
   source: string;
   status: "pending" | "success" | "failed";
   metadata: {
-    isHighQuality: boolean;
+    qualityScore: number;
     topic: string;
     crawledType: "manual" | "profile_auto" | "search_auto";
     processedAt: Date;
@@ -48,7 +48,7 @@ export interface Translation {
   content: string;
   status: "pending" | "success" | "failed";
   metadata: {
-    isHighQuality: boolean;
+    qualityScore: number;
     crawledType: "manual" | "profile_auto" | "search_auto";
     topic: string;
     wordCount?: number;
@@ -85,6 +85,12 @@ export interface SearchResponse {
 export interface OcrHTML {
   imageUrl: string;
   ocrHtml: string;
+}
+
+export interface Summary {
+  qualityScore: number;
+  summary: string;
+  topic: string;
 }
 
 export type Language =
