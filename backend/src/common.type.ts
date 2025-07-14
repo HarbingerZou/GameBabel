@@ -88,8 +88,11 @@ export interface OcrHTML {
 }
 
 export interface Summary {
-  qualityScore: number;
   summary: string;
+}
+
+export interface ContentAnalysis {
+  qualityScore: number;
   topic: string;
 }
 

@@ -1,5 +1,6 @@
 import type {
   Article,
+  ContentAnalysis,
   OcrHTML,
   OCRResult,
   OCRResultData,
@@ -38,10 +39,11 @@ export const processContent = async (
   );
 
   const topicOptions = await getTopicNames();
-  const { summary, topic, qualityScore } = await getSummary(
-    polishedContent,
-    topicOptions
-  );
+  const [summary, contentAnalysis] = await Promise.all([
+    getSummary(polishedContent),
+    getContentAnalysis(polishedContent, topicOptions),
+  ]);
+  const { qualityScore, topic } = contentAnalysis;
   const processedContentResponse = await storeProcessedContent(
     article,
     polishedContent,
@@ -258,26 +260,29 @@ async function getTopicNames(): Promise<string[]> {
   return topicsResponse.data.map((topic: any) => topic.name);
 }
 
-async function getSummary(
-  content: string,
-  topicOptions: string[]
-): Promise<Summary> {
+async function getSummary(content: string): Promise<string> {
   console.log("start get summary");
   const summaryResponse = await axios.post<Summary>(
     `${DS_SERVICE_URL}/api/summarize`,
     {
       content,
-      topicOptions,
     }
   );
   console.log("summaryResponse", summaryResponse.data);
-  return {
-    qualityScore: summaryResponse.data.qualityScore,
-    summary: summaryResponse.data.summary,
-    topic: summaryResponse.data.topic,
-  };
+  return summaryResponse.data.summary;
 }
 
+async function getContentAnalysis(
+  content: string,
+  topicOptions: string[]
+): Promise<ContentAnalysis> {
+  console.log("start get quality score");
+  const contentAnalysisResponse = await axios.post<ContentAnalysis>(
+    `${DS_SERVICE_URL}/api/analyze`,
+    { content, topicOptions }
+  );
+  return contentAnalysisResponse.data;
+}
 async function storeProcessedContent(
   article: Article,
   processedContent: string,
