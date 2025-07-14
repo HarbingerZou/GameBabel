@@ -92,7 +92,7 @@ async function processSearchedArticleLinks(links: string[]) {
 
   // Get the base URL for server-to-server API calls
   const baseUrl = `http://localhost:${process.env.PORT || 3000}`;
-  links = links.slice(5, 10);
+  links = links.slice(0, 5);
   for (const link of links) {
     try {
       const response = await fetch(`${baseUrl}/api/content-crawl/queue`, {

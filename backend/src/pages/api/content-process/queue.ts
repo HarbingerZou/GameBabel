@@ -58,7 +58,13 @@ function processContentAugmented(
     const baseUrl = `http://localhost:${process.env.PORT || 3000}`;
     const processedContent: ProcessedContent = await processContent(articleId);
     const id = processedContent._id;
-    const targeLanguageList: Language[] = ["english"];
+    const targeLanguageList: Language[] = [
+      "english",
+      "japanese",
+      "russian",
+      "spanish",
+      "french",
+    ];
     for (const targetLanguage of targeLanguageList) {
       const requestBody = { processedContentId: id, targetLanguage };
       const response = await fetch(`${baseUrl}/api/content-translate/queue`, {
