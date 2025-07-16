@@ -11,7 +11,15 @@ export default async function handler(
 ) {
   if (req.method === "POST") {
     try {
-      const { url, hasChainReaction } = req.body;
+      const {
+        url,
+        hasChainReaction,
+        crawledType,
+      }: {
+        url: string;
+        hasChainReaction: boolean;
+        crawledType: string | undefined;
+      } = req.body;
       if (!url) {
         throw new Error("URL is required");
       }
@@ -27,6 +35,7 @@ export default async function handler(
       // Add the job to the queue
       const job = await queue.addJob("crawl-content", {
         url,
+        crawledType,
       });
 
       return res.status(201).json({
@@ -35,9 +44,9 @@ export default async function handler(
         url: url,
       });
     } catch (error) {
-      console.error("Error adding content to queue:", error);
+      console.error("Error processing content in queue:", error);
       return res.status(500).json({
-        error: "Failed to add content to queue",
+        error: "Failed to process content in queue",
         details: error instanceof Error ? error.message : "Unknown error",
       });
     }
@@ -48,13 +57,16 @@ export default async function handler(
 
 function crawlContentAugmented(
   hasChainReaction: boolean
-): (url: string) => Promise<Article> {
+): (url: string, crawledType?: string) => Promise<Article> {
   if (!hasChainReaction) {
     return crawlContent;
   }
-  async function crawlContentWithChainReaction(url: string) {
+  async function crawlContentWithChainReaction(
+    url: string,
+    crawledType?: string
+  ) {
     const baseUrl = `http://localhost:${process.env.PORT || 3000}`;
-    const article: Article = await crawlContent(url);
+    const article: Article = await crawlContent(url, crawledType);
     const id = article._id;
     const requestBody = { articleId: id, hasChainReaction: true };
     const response = await fetch(`${baseUrl}/api/content-process/queue`, {

@@ -3,6 +3,7 @@ import { Article } from "../common.type";
 
 export interface ContentCrawlingData extends JobData {
   url: string;
+  crawledType?: string;
 }
 
 export interface ContentCrawlingResult extends JobResult {
@@ -16,7 +17,7 @@ export interface ContentCrawlingResult extends JobResult {
 
 export class ContentCrawlingQueue {
   public static async createQueue(
-    crawlContent: (url: string) => Promise<Article>,
+    crawlContent: (url: string, crawledType?: string) => Promise<Article>,
     queueNameAffix?: string
   ): Promise<JobQueue<ContentCrawlingData, ContentCrawlingResult>> {
     const output = await JobQueue.createQueue<
@@ -40,7 +41,10 @@ export class ContentCrawlingQueue {
           console.log("Step 2: Initiating crawler service...");
 
           // Call the crawler service
-          const article: Article = await crawlContent(data.url);
+          const article: Article = await crawlContent(
+            data.url,
+            data.crawledType
+          );
 
           await updateProgress(80);
           console.log("Step 3: Content crawled and stored successfully");

@@ -36,9 +36,9 @@ export default async function handler(
         targetLanguage: targetLanguage,
       });
     } catch (error) {
-      console.error("Error adding content translation to queue:", error);
+      console.error("Error translating content in queue:", error);
       return res.status(500).json({
-        error: "Failed to add content translation to queue",
+        error: "Failed to translate content in queue",
         details: error instanceof Error ? error.message : "Unknown error",
       });
     }

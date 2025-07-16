@@ -1,12 +1,28 @@
+export type Source = "bilibili" | "NGA";
+export interface CrawledContent {
+  title: string;
+  author: string;
+  url: string;
+  content: string;
+  source: Source;
+  language: Language; // Default to Chinese as Bilibili is a Chinese platform
+  status: "pending"; // Default status
+  metadata: {
+    crawledAt: Date;
+    wordCount: number;
+    hasImages: boolean;
+    originalPubTime: string | null;
+  };
+}
+
 export interface Article {
   _id: string;
   title: string;
   author: string;
   url: string;
-  summary: string;
   content: string;
-  source: string;
-  language: string;
+  source: Source;
+  language: Language;
   metadata: {
     crawledType: "manual" | "profile_auto" | "search_auto";
     crawledAt: Date;
@@ -24,8 +40,8 @@ export interface ProcessedContent {
   url: string;
   summary: string;
   content: string;
-  language: string;
-  source: string;
+  language: Language;
+  source: Source;
   status: "pending" | "success" | "failed";
   metadata: {
     qualityScore: number;
@@ -40,7 +56,7 @@ export interface ProcessedContent {
 export interface Translation {
   _id: string;
   processedContentId: string;
-  targetLanguage: string;
+  targetLanguage: Language;
   title: string;
   author: string;
   url: string;
@@ -76,12 +92,15 @@ export interface BatchedCrawlBase {
 
 type SearchType = "search" | "user-articles";
 export interface SearchResponse {
+  message: string;
+  results: SingleSearchResponse[];
+}
+export interface SingleSearchResponse {
   type: SearchType;
   articles: BatchedCrawlBase[];
   totalResults: number;
   searchUrl: string;
 }
-
 export interface OcrHTML {
   imageUrl: string;
   ocrHtml: string;

@@ -14,10 +14,13 @@ export default async function handler(
   }
 
   try {
-    const { keyword } = req.body;
+    const { keyword, pageLimit } = req.body;
 
     if (!keyword || typeof keyword !== "string") {
       return res.status(400).json({ error: "Keyword is required" });
+    }
+    if (!pageLimit || typeof pageLimit !== "number") {
+      return res.status(400).json({ error: "Page limit is required" });
     }
 
     // Call the crawler microservice's search API with keyword
@@ -29,7 +32,7 @@ export default async function handler(
     const crawlerResponse = await axios.get(
       `${CRAWLER_URL}/bilibili/crawl/search`,
       {
-        params: { keyword },
+        params: { keyword, limit: pageLimit },
       }
     );
 
@@ -40,27 +43,36 @@ export default async function handler(
     const searchResults: SearchResponse = crawlerResponse.data;
 
     // Process the search results and trigger article processing for each found article
-    if (searchResults.articles && searchResults.articles.length > 0) {
+    if (searchResults.results && searchResults.results.length > 0) {
       console.log(
-        `Found ${searchResults.articles.length} articles for keyword: ${keyword}`
+        `Found ${searchResults.results.length} pages for keyword: ${keyword}`
       );
+      for (const result of searchResults.results) {
+        if (result.articles && result.articles.length > 0) {
+          console.log(
+            `Found ${result.articles.length} articles for page ${result.searchUrl}`
+          );
+        } else {
+          console.log(`No articles found for page ${result.searchUrl}`);
+        }
 
-      await processSearchedArticleLinks(
-        searchResults.articles.map((article) => article.link)
-      );
+        await processSearchedArticleLinks(
+          result.articles.map((article) => article.link)
+        );
+      }
 
       return res.status(200).json({
         success: true,
         keyword,
         searchResults,
-        message: `Found ${searchResults.articles.length} articles for keyword "${keyword}"`,
+        message: `Found ${searchResults.results.length} pages for keyword "${keyword}"`,
       });
     } else {
       return res.status(200).json({
         success: true,
         keyword,
         searchResults,
-        message: `No articles found for keyword "${keyword}"`,
+        message: `No pages found for keyword "${keyword}"`,
       });
     }
   } catch (error) {
@@ -92,7 +104,7 @@ async function processSearchedArticleLinks(links: string[]) {
 
   // Get the base URL for server-to-server API calls
   const baseUrl = `http://localhost:${process.env.PORT || 3000}`;
-  links = links.slice(0, 5);
+  links = links.slice(0, 20);
   for (const link of links) {
     try {
       const response = await fetch(`${baseUrl}/api/content-crawl/queue`, {
@@ -100,7 +112,11 @@ async function processSearchedArticleLinks(links: string[]) {
         headers: {
           "Content-Type": "application/json",
         },
-        body: JSON.stringify({ url: link, hasChainReaction: true }),
+        body: JSON.stringify({
+          url: link,
+          hasChainReaction: true,
+          crawledType: "search_auto",
+        }),
       });
 
       if (!response.ok) {

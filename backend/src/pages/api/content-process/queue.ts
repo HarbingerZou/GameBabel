@@ -37,9 +37,9 @@ export default async function handler(
         articleId: articleId,
       });
     } catch (error) {
-      console.error("Error adding content processing to queue:", error);
+      console.error("Error processing content in queue:", error);
       return res.status(500).json({
-        error: "Failed to add content processing to queue",
+        error: "Failed to process content in queue",
         details: error instanceof Error ? error.message : "Unknown error",
       });
     }

@@ -72,7 +72,7 @@ services:
     ports:
       - "8004:3000"
     environment:
-      - MONGODB_URI=mongodb+srv://guest:qazwsxedc@default.ktjsvq6.mongodb.net/
+      - MONGODB_URI=mongodb+srv://guest:qazwsxedc@default.ktjsvq6.mongodb.net
     restart: unless-stopped
 
 volumes:

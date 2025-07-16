@@ -16,10 +16,18 @@ const Intro = () => (
 interface SearchFormProps {
   keyword: string;
   setKeyword: (value: string) => void;
+  pageLimit: string;
+  setPageLimit: (value: string) => void;
   onSubmit: (e: React.FormEvent) => void;
 }
 
-const SearchForm = ({ keyword, setKeyword, onSubmit }: SearchFormProps) => (
+const SearchForm = ({
+  keyword,
+  setKeyword,
+  pageLimit,
+  setPageLimit,
+  onSubmit,
+}: SearchFormProps) => (
   <form onSubmit={onSubmit} className="mb-8">
     <div className="mb-6">
       <label
@@ -28,29 +36,65 @@ const SearchForm = ({ keyword, setKeyword, onSubmit }: SearchFormProps) => (
       >
         Crawl & Process Articles
       </label>
-      <div className="relative">
-        <input
-          id="keyword"
-          type="text"
-          value={keyword}
-          onChange={(e) => setKeyword(e.target.value)}
-          placeholder="Enter keywords to crawl and process articles..."
-          className="w-full px-4 py-4 pl-12 border border-gray-300 rounded-xl shadow-sm focus:outline-none focus:ring-2 focus:ring-gray-500 focus:border-gray-500 transition-colors text-gray-900 placeholder-gray-500"
-        />
-        <div className="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none">
-          <svg
-            className="h-5 w-5 text-gray-400"
-            fill="none"
-            stroke="currentColor"
-            viewBox="0 0 24 24"
+      <div className="flex gap-3">
+        <div className="relative flex-1">
+          <input
+            id="keyword"
+            type="text"
+            value={keyword}
+            onChange={(e) => setKeyword(e.target.value)}
+            placeholder="Enter keywords to crawl and process articles..."
+            className="w-full px-4 py-4 pl-12 border border-gray-300 rounded-xl shadow-sm focus:outline-none focus:ring-2 focus:ring-gray-500 focus:border-gray-500 transition-colors text-gray-900 placeholder-gray-500"
+          />
+          <div className="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none">
+            <svg
+              className="h-5 w-5 text-gray-400"
+              fill="none"
+              stroke="currentColor"
+              viewBox="0 0 24 24"
+            >
+              <path
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                strokeWidth={2}
+                d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"
+              />
+            </svg>
+          </div>
+        </div>
+        <div className="relative">
+          <select
+            id="pageLimit"
+            value={pageLimit}
+            onChange={(e) => setPageLimit(e.target.value)}
+            className="px-4 py-4 pr-10 border border-gray-300 rounded-xl shadow-sm focus:outline-none focus:ring-2 focus:ring-gray-500 focus:border-gray-500 transition-colors text-gray-900 bg-white appearance-none cursor-pointer min-w-[140px]"
           >
-            <path
-              strokeLinecap="round"
-              strokeLinejoin="round"
-              strokeWidth={2}
-              d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"
-            />
-          </svg>
+            <option value="1">1 Page</option>
+            <option value="2">2 Pages</option>
+            <option value="3">3 Pages</option>
+            <option value="4">4 Pages</option>
+            <option value="5">5 Pages</option>
+            <option value="6">6 Pages</option>
+            <option value="7">7 Pages</option>
+            <option value="8">8 Pages</option>
+            <option value="9">9 Pages</option>
+            <option value="10">10 Pages</option>
+          </select>
+          <div className="absolute inset-y-0 right-0 pr-3 flex items-center pointer-events-none">
+            <svg
+              className="h-5 w-5 text-gray-400"
+              fill="none"
+              stroke="currentColor"
+              viewBox="0 0 24 24"
+            >
+              <path
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                strokeWidth={2}
+                d="M19 9l-7 7-7-7"
+              />
+            </svg>
+          </div>
         </div>
       </div>
     </div>
@@ -256,6 +300,8 @@ const SearchPopup = ({ show, message }: SearchPopupProps) => {
 interface MainContentCardProps {
   keyword: string;
   setKeyword: (value: string) => void;
+  pageLimit: string;
+  setPageLimit: (value: string) => void;
   onSubmit: (e: React.FormEvent) => void;
   onViewAll: () => void;
 }
@@ -263,11 +309,19 @@ interface MainContentCardProps {
 const MainContentCard = ({
   keyword,
   setKeyword,
+  pageLimit,
+  setPageLimit,
   onSubmit,
   onViewAll,
 }: MainContentCardProps) => (
   <div className="bg-white rounded-2xl shadow-xl border border-gray-200 p-8">
-    <SearchForm keyword={keyword} setKeyword={setKeyword} onSubmit={onSubmit} />
+    <SearchForm
+      keyword={keyword}
+      setKeyword={setKeyword}
+      pageLimit={pageLimit}
+      setPageLimit={setPageLimit}
+      onSubmit={onSubmit}
+    />
     <Divider />
     <ViewAllButton onClick={onViewAll} />
   </div>
@@ -277,6 +331,7 @@ const MainContentCard = ({
 export default function Home() {
   const router = useRouter();
   const [keyword, setKeyword] = useState("");
+  const [pageLimit, setPageLimit] = useState("1");
   const [showPopup, setShowPopup] = useState(false);
   const [searchMessage, setSearchMessage] = useState("");
 
@@ -285,7 +340,7 @@ export default function Home() {
     if (keyword.trim()) {
       setShowPopup(true);
       setSearchMessage(
-        `Searching for articles with keyword: "${keyword.trim()}"`
+        `Searching for articles with keyword: "${keyword.trim()}" for ${pageLimit} pages`
       );
 
       try {
@@ -295,7 +350,10 @@ export default function Home() {
           headers: {
             "Content-Type": "application/json",
           },
-          body: JSON.stringify({ keyword: keyword.trim() }),
+          body: JSON.stringify({
+            keyword: keyword.trim(),
+            pageLimit: parseInt(pageLimit),
+          }),
         });
 
         if (response.ok) {
@@ -328,6 +386,8 @@ export default function Home() {
         <MainContentCard
           keyword={keyword}
           setKeyword={setKeyword}
+          pageLimit={pageLimit}
+          setPageLimit={setPageLimit}
           onSubmit={handleSubmit}
           onViewAll={handleViewAll}
         />
