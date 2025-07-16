@@ -57,6 +57,10 @@ function processContentAugmented(
   async function processContentWithChainReaction(articleId: string) {
     const baseUrl = `http://localhost:${process.env.PORT || 3000}`;
     const processedContent: ProcessedContent = await processContent(articleId);
+    if (shouldRejectChainReaction(processedContent)) {
+      return processedContent;
+    }
+
     const id = processedContent._id;
     const targeLanguageList: Language[] = [
       "english",
@@ -81,4 +85,16 @@ function processContentAugmented(
     return processedContent;
   }
   return processContentWithChainReaction;
+}
+
+function shouldRejectChainReaction(
+  processedContent: ProcessedContent
+): boolean {
+  if (processedContent.metadata.qualityScore < 7) {
+    return true;
+  }
+  if (processedContent.metadata.topic === null) {
+    return true;
+  }
+  return false;
 }

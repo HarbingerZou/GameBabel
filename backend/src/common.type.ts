@@ -45,7 +45,7 @@ export interface ProcessedContent {
   status: "pending" | "success" | "failed";
   metadata: {
     qualityScore: number;
-    topic: string;
+    topic: string | null;
     crawledType: "manual" | "profile_auto" | "search_auto";
     processedAt: Date;
     wordCount?: number;
@@ -66,7 +66,7 @@ export interface Translation {
   metadata: {
     qualityScore: number;
     crawledType: "manual" | "profile_auto" | "search_auto";
-    topic: string;
+    topic: string | null;
     wordCount?: number;
     translatedAt: Date;
     translationProvider: string;
