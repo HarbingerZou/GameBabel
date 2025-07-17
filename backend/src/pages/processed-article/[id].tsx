@@ -423,7 +423,11 @@ export default function ProcessedArticlePage({
       });
       if (response.status === 200) {
         const newTranslation = await response.json();
-        setTranslations((prev) => [...prev, newTranslation]);
+        if (newTranslation !== null) {
+          setTranslations((prev) => [...prev, newTranslation]);
+        } else {
+          setError("Translation already exists");
+        }
       } else {
         setError("Failed to translate content");
       }

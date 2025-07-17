@@ -1,3 +1,4 @@
+import axios from "axios";
 import { Article, CrawledContent } from "../common.type";
 
 const DATA_PERSISTENCE_URL =
@@ -8,7 +9,11 @@ const CRAWLER_URL =
 export const crawlContent = async (
   url: string,
   crawledType: string = "manual"
-): Promise<Article> => {
+): Promise<Article | null> => {
+  const shouldReject = await shouldRejectCrawlingContent(url);
+  if (shouldReject) {
+    return null;
+  }
   const crawledContent = await crawl(url);
   // Transform the crawled content to match the data persistence model
   const storedContent = await storeContent(crawledContent, crawledType);
@@ -48,6 +53,18 @@ async function crawl(url: string): Promise<CrawledContent> {
     throw new Error("No content found in crawler response");
   }
   return crawledContent;
+}
+
+async function shouldRejectCrawlingContent(url: string): Promise<boolean> {
+  const existenceResponse = await axios.get(
+    `${DATA_PERSISTENCE_URL}/api/content/by-url?url=${url}`
+  );
+  const existence = existenceResponse.data;
+  if (existence.exists) {
+    console.log("Content already exists for this URL");
+    return true;
+  }
+  return false;
 }
 
 async function storeContent(

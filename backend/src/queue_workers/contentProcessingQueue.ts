@@ -10,12 +10,12 @@ export interface ContentProcessingResult extends JobResult {
   processedAt: number;
   status: "success" | "failed";
   message: string;
-  processedContent?: ProcessedContent;
+  processedContent?: ProcessedContent | null;
 }
 
 export class ContentProcessingQueue {
   public static async createQueue(
-    processContent: (articleId: string) => Promise<ProcessedContent>,
+    processContent: (articleId: string) => Promise<ProcessedContent | null>,
     queueNameAffix?: string
   ): Promise<JobQueue<ContentProcessingData, ContentProcessingResult>> {
     const output = await JobQueue.createQueue<
@@ -41,10 +41,8 @@ export class ContentProcessingQueue {
           console.log("Step 2: Initiating content processing...");
 
           // Process the content
-          const processedContent: ProcessedContent = await processContent(
-            data.articleId
-          );
-
+          const processedContent: ProcessedContent | null =
+            await processContent(data.articleId);
           await updateProgress(80);
           console.log("Step 3: Content processed successfully");
 

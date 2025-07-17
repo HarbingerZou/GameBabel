@@ -8,16 +8,18 @@ export interface ContentCrawlingData extends JobData {
 
 export interface ContentCrawlingResult extends JobResult {
   url: string;
-  articleId: string;
   processedAt: number;
   status: "success" | "failed";
   message: string;
-  article?: Article;
+  article?: Article | null;
 }
 
 export class ContentCrawlingQueue {
   public static async createQueue(
-    crawlContent: (url: string, crawledType?: string) => Promise<Article>,
+    crawlContent: (
+      url: string,
+      crawledType?: string
+    ) => Promise<Article | null>,
     queueNameAffix?: string
   ): Promise<JobQueue<ContentCrawlingData, ContentCrawlingResult>> {
     const output = await JobQueue.createQueue<
@@ -41,7 +43,7 @@ export class ContentCrawlingQueue {
           console.log("Step 2: Initiating crawler service...");
 
           // Call the crawler service
-          const article: Article = await crawlContent(
+          const article: Article | null = await crawlContent(
             data.url,
             data.crawledType
           );
@@ -54,7 +56,6 @@ export class ContentCrawlingQueue {
 
           return {
             url: data.url,
-            articleId: article._id,
             processedAt: Date.now(),
             status: "success",
             message: "Content crawled and stored successfully",

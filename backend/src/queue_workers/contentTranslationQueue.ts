@@ -12,7 +12,7 @@ export interface ContentTranslationResult extends JobResult {
   translatedAt: number;
   status: "success" | "failed";
   message: string;
-  translation?: Translation;
+  translation?: Translation | null;
 }
 
 export class ContentTranslationQueue {
@@ -20,7 +20,7 @@ export class ContentTranslationQueue {
     translateContent: (
       processedContentId: string,
       targetLanguage: Language
-    ) => Promise<Translation>,
+    ) => Promise<Translation | null>,
     queueNameAffix?: string
   ): Promise<JobQueue<ContentTranslationData, ContentTranslationResult>> {
     const output = await JobQueue.createQueue<
@@ -53,7 +53,7 @@ export class ContentTranslationQueue {
           console.log("Step 2: Initiating content translation...");
 
           // Translate the content using the translateContent function
-          const translation: Translation = await translateContent(
+          const translation: Translation | null = await translateContent(
             data.processedContentId,
             data.targetLanguage
           );

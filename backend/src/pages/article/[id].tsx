@@ -451,7 +451,11 @@ export default function ProcessedArticlePage({
       if (response.status === 200) {
         const data = await response.json();
         console.log("data", data);
-        setProcessedContent(data);
+        if (data !== null) {
+          setProcessedContent(data);
+        } else {
+          setError("Processed content already exists");
+        }
       } else {
         setError("Failed to process content");
       }

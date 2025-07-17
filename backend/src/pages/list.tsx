@@ -43,7 +43,14 @@ export default function Home({
         const articleResponse = await axios.post("/api/content-crawl", {
           url: newUrl,
         });
-        setArticles((prevArticles) => [articleResponse.data, ...prevArticles]);
+        if (articleResponse.data !== null) {
+          setArticles((prevArticles) => [
+            articleResponse.data,
+            ...prevArticles,
+          ]);
+        } else {
+          setError("Article already exists");
+        }
       }
 
       setNewUrl("");

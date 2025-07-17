@@ -20,8 +20,12 @@ const DATA_PERSISTENCE_URL =
 
 export const processContent = async (
   articleId: string
-): Promise<ProcessedContent> => {
+): Promise<ProcessedContent | null> => {
   const article: Article = await getArticle(articleId);
+  const shouldReject = await shouldRejectProcessingContent(article);
+  if (shouldReject) {
+    return null;
+  }
   const [ocrHtmls, cleanedHtml] = await Promise.all([
     imageProcessingBranch(article),
     textProcessingBranch(article),
@@ -56,6 +60,21 @@ export const processContent = async (
   //const processedContentResponse = directReturn(article, polishedContent);
   return processedContentResponse;
 };
+
+async function shouldRejectProcessingContent(
+  article: Article
+): Promise<boolean> {
+  const _id = article._id;
+  const processedContentResponse = await axios.get(
+    `${DATA_PERSISTENCE_URL}/api/processed-content/${_id}`
+  );
+  const processedContent = processedContentResponse.data;
+  if (processedContent !== null) {
+    console.log("Processed content already exists for this article");
+    return true;
+  }
+  return false;
+}
 
 async function imageProcessingBranch(article: Article): Promise<OcrHTML[]> {
   const imageUrls: string[] = extractImageUrls(article.content);

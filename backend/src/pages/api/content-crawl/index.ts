@@ -15,7 +15,7 @@ export default async function handler(
         throw new Error("URL is required");
       }
 
-      const storedContent: Article = await crawlContent(url);
+      const storedContent: Article | null = await crawlContent(url);
       return res.status(201).json(storedContent);
     } catch (error) {
       console.error("Error creating content:", error);

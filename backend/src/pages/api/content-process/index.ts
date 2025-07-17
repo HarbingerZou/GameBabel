@@ -11,7 +11,7 @@ export default async function handler(
   }
 
   try {
-    const processedContent: ProcessedContent = await processContent(
+    const processedContent: ProcessedContent | null = await processContent(
       req.body.articleId
     );
     return res.status(200).json(processedContent);

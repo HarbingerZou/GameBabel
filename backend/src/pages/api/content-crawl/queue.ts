@@ -57,7 +57,7 @@ export default async function handler(
 
 function crawlContentAugmented(
   hasChainReaction: boolean
-): (url: string, crawledType?: string) => Promise<Article> {
+): (url: string, crawledType?: string) => Promise<Article | null> {
   if (!hasChainReaction) {
     return crawlContent;
   }
@@ -66,7 +66,10 @@ function crawlContentAugmented(
     crawledType?: string
   ) {
     const baseUrl = `http://localhost:${process.env.PORT || 3000}`;
-    const article: Article = await crawlContent(url, crawledType);
+    const article: Article | null = await crawlContent(url, crawledType);
+    if (article === null) {
+      return null;
+    }
     const id = article._id;
     const requestBody = { articleId: id, hasChainReaction: true };
     const response = await fetch(`${baseUrl}/api/content-process/queue`, {

@@ -50,17 +50,21 @@ export default async function handler(
 
 function processContentAugmented(
   hasChainReaction: boolean
-): (articleId: string) => Promise<ProcessedContent> {
+): (articleId: string) => Promise<ProcessedContent | null> {
   if (!hasChainReaction) {
     return processContent;
   }
   async function processContentWithChainReaction(articleId: string) {
     const baseUrl = `http://localhost:${process.env.PORT || 3000}`;
-    const processedContent: ProcessedContent = await processContent(articleId);
+    const processedContent: ProcessedContent | null = await processContent(
+      articleId
+    );
+    if (processedContent === null) {
+      return null;
+    }
     if (shouldRejectChainReaction(processedContent)) {
       return processedContent;
     }
-
     const id = processedContent._id;
     const targeLanguageList: Language[] = [
       "english",

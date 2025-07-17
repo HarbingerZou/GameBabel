@@ -10,13 +10,19 @@ const DATA_PERSISTENCE_URL =
 export const translateContent = async (
   processedContentId: string,
   targetLanguage: Language
-) => {
+): Promise<Translation | null> => {
   // Get the processed content
   const processedContent = await getProcessedContent(processedContentId);
   if (!processedContent) {
     throw new Error("Processed content not found");
   }
-
+  const shouldReject = await shouldRejectTranslation(
+    processedContent,
+    targetLanguage
+  );
+  if (shouldReject) {
+    return null;
+  }
   // Translate the processed content
   const { translatedContent, translatedTitle, translatedSummary } =
     await getTranslatedHtml(
@@ -37,6 +43,22 @@ export const translateContent = async (
 
   return translationResponse;
 };
+
+async function shouldRejectTranslation(
+  processedContent: ProcessedContent,
+  targetLanguage: Language
+): Promise<boolean> {
+  const _id = processedContent._id;
+  const translationResponse = await axios.get(
+    `${DATA_PERSISTENCE_URL}/api/translation/${_id}/${targetLanguage}`
+  );
+  const translation = translationResponse.data;
+  if (translation !== null) {
+    console.log("Translation already exists for this article");
+    return true;
+  }
+  return false;
+}
 
 async function getTranslation(
   processedContentId: string,

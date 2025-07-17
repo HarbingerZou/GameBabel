@@ -1,5 +1,6 @@
 import type { NextApiRequest, NextApiResponse } from "next";
 import { translateContent } from "@/src/utils/content-translate";
+import { Translation } from "@/src/common.type";
 export default async function handler(
   req: NextApiRequest,
   res: NextApiResponse
@@ -14,7 +15,7 @@ export default async function handler(
     if (!processedContentId) {
       return res.status(400).json({ error: "Missing required fields" });
     }
-    const translationResponse = await translateContent(
+    const translationResponse: Translation | null = await translateContent(
       processedContentId,
       targetLanguage
     );
