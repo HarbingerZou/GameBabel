@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import router, { useRouter } from "next/router";
+import { useRouter } from "next/router";
 import axios from "axios";
 import { Article, ProcessedContent } from "../common.type";
 import { GetServerSideProps } from "next";
@@ -263,6 +263,8 @@ function ArticleList({
   processedContents,
   totalArticles,
 }: ArticleListProps) {
+  const router = useRouter();
+
   const onViewArticle = (id: string) => {
     router.push(`/article/${id}`);
   };
@@ -332,8 +334,8 @@ function Pagination({
   totalArticles,
 }: PaginationProps) {
   const router = useRouter();
-
   const handlePageChange = (page: number) => {
+    // Use window.location.href to trigger full page reload
     router.push(`/list?page=${page}`);
   };
   return (
@@ -411,8 +413,6 @@ export default function Home({
   totalPages,
   totalArticles,
 }: HomeProps) {
-  const router = useRouter();
-  const [articles, setArticles] = useState<Article[]>(initialArticles);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
 
@@ -438,10 +438,8 @@ export default function Home({
           url: url,
         });
         if (articleResponse.data !== null) {
-          setArticles((prevArticles) => [
-            articleResponse.data,
-            ...prevArticles,
-          ]);
+          // Refresh the page to show the new article
+          window.location.reload();
         } else {
           setError("Article already exists");
         }
@@ -476,7 +474,7 @@ export default function Home({
         {/* Articles List */}
         <div className="bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden">
           <ArticleList
-            articles={articles}
+            articles={initialArticles}
             processedContents={processedContents}
             totalArticles={totalArticles}
           />
