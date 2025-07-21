@@ -12,9 +12,15 @@ export interface CrawledContent {
     wordCount: number;
     hasImages: boolean;
     originalPubTime: string | null;
+    engagement: {
+      likes: number;
+      coins: number;
+      favorites: number;
+      forwards: number;
+      comments: number;
+    };
   };
 }
-
 export interface Article {
   _id: string;
   title: string;

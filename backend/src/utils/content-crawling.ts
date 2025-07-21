@@ -88,6 +88,7 @@ async function storeContent(
       originalPubTime: crawledContent.metadata.originalPubTime
         ? new Date(crawledContent.metadata.originalPubTime)
         : null,
+      engagement: crawledContent.metadata.engagement,
     },
   };
 

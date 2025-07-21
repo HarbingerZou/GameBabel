@@ -94,6 +94,7 @@ function processContentAugmented(
 function shouldRejectChainReaction(
   processedContent: ProcessedContent
 ): boolean {
+  return false;
   if (processedContent.metadata.qualityScore < 7) {
     return true;
   }
