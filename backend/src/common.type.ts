@@ -35,6 +35,13 @@ export interface Article {
     wordCount: number;
     hasImages: boolean;
     originalPubTime: Date;
+    engagement?: {
+      likes: number;
+      coins: number;
+      favorites: number;
+      forwards: number;
+      comments: number;
+    };
   };
 }
 

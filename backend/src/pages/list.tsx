@@ -10,6 +10,7 @@ interface HomeProps {
   currentPage: number;
   totalPages: number;
   totalArticles: number;
+  currentSort: string | null;
 }
 
 // Input Form Component
@@ -135,7 +136,22 @@ function ArticleEntry({
         return "bg-gray-50 text-gray-700 border-gray-200";
     }
   };
-
+  function Engagement({
+    engagement,
+  }: {
+    engagement: Article["metadata"]["engagement"];
+  }) {
+    if (!engagement) return null;
+    return (
+      <div className="flex flex-col space-y-1">
+        {Object.entries(engagement).map(([key, value]) => (
+          <div key={key} className="text-xs text-gray-600">
+            {key}: {value}
+          </div>
+        ))}
+      </div>
+    );
+  }
   return (
     <tr className="hover:bg-gray-50 transition-colors">
       <td className="px-6 py-4">
@@ -159,10 +175,14 @@ function ArticleEntry({
           href={article.url}
           target="_blank"
           rel="noopener noreferrer"
-          className="text-sm text-gray-600 hover:text-gray-900 transition-colors truncate block max-w-xs"
+          className="text-sm text-gray-600 hover:text-gray-900 transition-colors truncate block w-full"
+          title={article.url}
         >
           {article.url}
         </a>
+      </td>
+      <td className="px-6 py-4">
+        <Engagement engagement={article.metadata.engagement} />
       </td>
       <td className="px-6 py-4">
         {processedContent ? (
@@ -283,39 +303,38 @@ function ArticleList({
       {articles.length === 0 ? (
         <EmptyArticleList />
       ) : (
-        <>
-          <div className="overflow-x-auto">
-            <table className="min-w-full divide-y divide-gray-200">
-              <thead className="bg-gray-50">
-                <tr>
-                  <th className="px-6 py-4 text-left text-xs font-medium text-gray-500 uppercase tracking-wider w-1/4">
-                    Article
-                  </th>
-                  <th className="px-6 py-4 text-left text-xs font-medium text-gray-500 uppercase tracking-wider w-1/4">
-                    Source
-                  </th>
-                  <th className="px-6 py-4 text-left text-xs font-medium text-gray-500 uppercase tracking-wider w-1/6">
-                    Status
-                  </th>
-                  <th className="px-6 py-4 text-left text-xs font-medium text-gray-500 uppercase tracking-wider w-1/3">
-                    Actions
-                  </th>
-                </tr>
-              </thead>
-              <tbody className="bg-white divide-y divide-gray-200">
-                {articles.map((article) => (
-                  <ArticleEntry
-                    key={article._id}
-                    article={article}
-                    processedContent={processedContents[article._id]}
-                    onViewArticle={onViewArticle}
-                    onViewProcessedArticle={onViewProcessedArticle}
-                  />
-                ))}
-              </tbody>
-            </table>
-          </div>
-        </>
+        <table className="w-full divide-y divide-gray-200 table-fixed">
+          <thead className="bg-gray-50">
+            <tr>
+              <th className="px-6 py-4 text-left text-xs font-medium text-gray-500 uppercase tracking-wider w-1/6">
+                Article
+              </th>
+              <th className="px-6 py-4 text-left text-xs font-medium text-gray-500 uppercase tracking-wider w-1/6">
+                Source
+              </th>
+              <th className="px-6 py-4 text-left text-xs font-medium text-gray-500 uppercase tracking-wider w-1/6">
+                Engagement
+              </th>
+              <th className="px-6 py-4 text-left text-xs font-medium text-gray-500 uppercase tracking-wider w-1/6">
+                Status
+              </th>
+              <th className="px-6 py-4 text-left text-xs font-medium text-gray-500 uppercase tracking-wider w-1/3">
+                Actions
+              </th>
+            </tr>
+          </thead>
+          <tbody className="bg-white divide-y divide-gray-200">
+            {articles.map((article) => (
+              <ArticleEntry
+                key={article._id}
+                article={article}
+                processedContent={processedContents[article._id]}
+                onViewArticle={onViewArticle}
+                onViewProcessedArticle={onViewProcessedArticle}
+              />
+            ))}
+          </tbody>
+        </table>
       )}
     </div>
   );
@@ -334,9 +353,16 @@ function Pagination({
   totalArticles,
 }: PaginationProps) {
   const router = useRouter();
+
   const handlePageChange = (page: number) => {
-    // Use window.location.href to trigger full page reload
-    router.push(`/list?page=${page}`);
+    // Preserve current sort parameter when navigating pages
+    const currentSort = router.query.sort as string;
+    const url = new URL(window.location.href);
+    url.searchParams.set("page", page.toString());
+    if (currentSort) {
+      url.searchParams.set("sort", currentSort);
+    }
+    window.location.href = url.pathname + url.search;
   };
   return (
     <div className="px-6 py-4 border-t border-gray-200">
@@ -405,6 +431,64 @@ function ErrorMessage({ error }: { error: string }) {
   );
 }
 
+// Sort Button Panel Component
+interface SortButtonPanelProps {
+  currentSort: string | null;
+}
+
+function SortButtonPanel({ currentSort }: SortButtonPanelProps) {
+  const sortOptions = [
+    { key: "likes", label: "Likes" },
+    { key: "coins", label: "Coins" },
+    { key: "favorites", label: "Favorites" },
+    { key: "comments", label: "Comments" },
+    { key: "forwards", label: "Forwards" },
+  ];
+
+  const handleSort = (sortKey: string) => {
+    // Navigate with sort parameter to trigger full page reload
+    window.location.href = `/list?sort=${sortKey}`;
+  };
+
+  const clearSort = () => {
+    // Navigate without sort parameter
+    window.location.href = `/list`;
+  };
+
+  return (
+    <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-4 mb-6">
+      <div className="flex items-center gap-4">
+        <h3 className="text-sm font-medium text-gray-700 whitespace-nowrap">
+          Sort by:
+        </h3>
+        <div className="flex flex-wrap gap-2 flex-1">
+          {sortOptions.map((option) => (
+            <button
+              key={option.key}
+              onClick={() => handleSort(option.key)}
+              className={`px-3 py-2 text-xs font-medium rounded-md transition-colors ${
+                currentSort === option.key
+                  ? "bg-gray-900 text-white"
+                  : "text-gray-700 bg-gray-100 hover:bg-gray-200 border border-gray-300"
+              }`}
+            >
+              {option.label}
+            </button>
+          ))}
+        </div>
+        {currentSort && (
+          <button
+            onClick={clearSort}
+            className="text-xs text-gray-500 hover:text-gray-700 transition-colors whitespace-nowrap"
+          >
+            Clear sort
+          </button>
+        )}
+      </div>
+    </div>
+  );
+}
+
 // Main Home Component
 export default function Home({
   initialArticles,
@@ -412,6 +496,7 @@ export default function Home({
   currentPage,
   totalPages,
   totalArticles,
+  currentSort,
 }: HomeProps) {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
@@ -471,6 +556,9 @@ export default function Home({
         {/* Error Message */}
         <ErrorMessage error={error} />
 
+        {/* Sort Button Panel */}
+        <SortButtonPanel currentSort={currentSort} />
+
         {/* Articles List */}
         <div className="bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden">
           <ArticleList
@@ -497,13 +585,20 @@ export const getServerSideProps: GetServerSideProps = async (context) => {
       process.env.NEXT_PUBLIC_DATA_PERSISTENCE_URL ||
       "http://data-persistence:3000";
 
-    // Get page from query parameters, default to 1
+    // Get page and sort from query parameters
     const page = parseInt(context.query.page as string) || 1;
-    const limit = 20; // Articles per page
+    const sort = context.query.sort as string;
+    const limit = 15; // Articles per page
 
-    const response = await fetch(
-      `${DATA_PERSISTENCE_URL}/api/content?page=${page}&limit=${limit}`
-    );
+    // Build the API URL with sort parameter if provided
+    const apiUrl = new URL(`${DATA_PERSISTENCE_URL}/api/content`);
+    apiUrl.searchParams.set("page", page.toString());
+    apiUrl.searchParams.set("limit", limit.toString());
+    if (sort) {
+      apiUrl.searchParams.set("sort", sort);
+    }
+
+    const response = await fetch(apiUrl.toString());
 
     if (!response.ok) {
       throw new Error("Failed to fetch articles");
@@ -543,6 +638,7 @@ export const getServerSideProps: GetServerSideProps = async (context) => {
         currentPage,
         totalPages,
         totalArticles,
+        currentSort: sort || null,
       },
     };
   } catch (error) {
@@ -554,6 +650,7 @@ export const getServerSideProps: GetServerSideProps = async (context) => {
         currentPage: 1,
         totalPages: 1,
         totalArticles: 0,
+        currentSort: null,
       },
     };
   }
