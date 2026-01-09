@@ -135,3 +135,18 @@ export type Language =
   | "japanese"
   | "french"
   | "russian";
+
+export type Category =
+  | "OCR"
+  | "Cleaning"
+  | "Merging"
+  | "Polishing"
+  | "Analysis"
+  | "Summary"
+  | "Translation";
+
+export interface Prompt {
+  _id: string;
+  content: string;
+  category: Category;
+}

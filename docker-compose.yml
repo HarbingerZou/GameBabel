@@ -32,6 +32,7 @@ services:
     restart: unless-stopped
 
   image-ocr:
+    platform: linux/amd64
     build:
       context: ./image-ocr
       dockerfile: Dockerfile
