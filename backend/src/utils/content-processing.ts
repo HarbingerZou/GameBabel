@@ -1,10 +1,12 @@
 import type {
   Article,
+  Category,
   ContentAnalysis,
   OcrHTML,
   OCRResult,
   OCRResultData,
   ProcessedContent,
+  Prompt,
   Summary,
 } from "../common.type";
 import { extractImageUrls } from "./image_processing";
@@ -172,11 +174,13 @@ async function getOcrHtmls(
 
       // Transform OCR data to the format expected by transform-ocr endpoint
       const ocrData: OCRResultData[] = ocrResult.data;
+      const prompt = await getPrompt("OCR");
 
       const transformResponse = await axios.post(
         `${DS_SERVICE_URL}/api/transform-ocr`,
         {
           ocrResult: ocrData,
+          prompt: prompt.content,
         }
       );
 
@@ -218,10 +222,12 @@ async function getCleanedHtml(htmlContent: string): Promise<string> {
   console.log("start get cleaned HTML");
 
   try {
+    const prompt = await getPrompt("Cleaning");
     const cleanedResponse = await axios.post(
       `${DS_SERVICE_URL}/api/remove-styling`,
       {
         htmlContent: htmlContent,
+        prompt: prompt.content,
       }
     );
 
@@ -240,13 +246,14 @@ async function getMergedHtml(
   originalHtml: string
 ): Promise<string> {
   console.log("start merge OCR HTML");
-
+  const prompt = await getPrompt("Merging");
   // Then, merge the original HTML with the OCR HTML results
   const mergeResponse = await axios.post(
     `${DS_SERVICE_URL}/api/merge-ocr-html`,
     {
       content: originalHtml,
       ocrHtmls: ocrHtmls,
+      prompt: prompt.content,
     }
   );
 
@@ -260,11 +267,13 @@ async function getPolishedContent(
   content: string
 ): Promise<string> {
   console.log("start get polished content");
+  const prompt = await getPrompt("Polishing");
   const polishedContentResponse = await axios.post(
     `${DS_SERVICE_URL}/api/polish`,
     {
       title,
       content,
+      prompt: prompt.content,
     }
   );
   console.log("polishedContentResponse", polishedContentResponse.data);
@@ -279,12 +288,21 @@ async function getTopicNames(): Promise<string[]> {
   return topicsResponse.data.map((topic: any) => topic.name);
 }
 
+async function getPrompt(category: Category): Promise<Prompt> {
+  const promptResponse = await axios.get(
+    `${DATA_PERSISTENCE_URL}/api/prompt/category/${category}`
+  );
+  return promptResponse.data;
+}
+
 async function getSummary(content: string): Promise<string> {
   console.log("start get summary");
+  const prompt = await getPrompt("Summary");
   const summaryResponse = await axios.post<Summary>(
     `${DS_SERVICE_URL}/api/summarize`,
     {
       content,
+      prompt: prompt.content,
     }
   );
   console.log("summaryResponse", summaryResponse.data);
@@ -296,9 +314,10 @@ async function getContentAnalysis(
   topicOptions: string[]
 ): Promise<ContentAnalysis> {
   console.log("start get quality score");
+  const prompt = await getPrompt("Analysis");
   const contentAnalysisResponse = await axios.post<ContentAnalysis>(
     `${DS_SERVICE_URL}/api/analyze`,
-    { content, topicOptions }
+    { content, topicOptions, prompt: prompt.content }
   );
   return contentAnalysisResponse.data;
 }

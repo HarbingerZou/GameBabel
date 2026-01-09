@@ -1,5 +1,11 @@
 import axios from "axios";
-import type { Language, ProcessedContent, Translation } from "../common.type";
+import type {
+  Category,
+  Language,
+  ProcessedContent,
+  Prompt,
+  Translation,
+} from "../common.type";
 
 const DS_SERVICE_URL =
   process.env.NEXT_PUBLIC_DS_URL || "http://localhost:3001";
@@ -95,6 +101,7 @@ async function getTranslatedHtml(
   translatedSummary: string;
 }> {
   console.log("start translate html");
+  const prompt = await getPrompt("Translation");
   const translateResponse = await axios.post(
     `${DS_SERVICE_URL}/api/translate-html`,
     {
@@ -102,6 +109,7 @@ async function getTranslatedHtml(
       language: language,
       title: title,
       summary: summary,
+      prompt: prompt.content,
     }
   );
 
@@ -155,4 +163,11 @@ async function storeTranslation(
     console.error("Error storing translation:", error);
     throw error;
   }
+}
+
+async function getPrompt(category: Category): Promise<Prompt> {
+  const promptResponse = await axios.get(
+    `${DATA_PERSISTENCE_URL}/api/prompt/category/${category}`
+  );
+  return promptResponse.data;
 }

@@ -9,6 +9,12 @@ export default function Header() {
         </Link>
         <nav className="flex items-center space-x-6">
           <Link
+            href="/prompts"
+            className="text-gray-300 hover:text-white transition-colors"
+          >
+            Prompts
+          </Link>
+          <Link
             href="/queues"
             className="text-gray-300 hover:text-white transition-colors"
           >
