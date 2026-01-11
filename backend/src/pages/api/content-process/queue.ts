@@ -72,6 +72,7 @@ function processContentAugmented(
       "russian",
       "spanish",
       "french",
+      "chinese",
     ];
     for (const targetLanguage of targeLanguageList) {
       const requestBody = { processedContentId: id, targetLanguage };
