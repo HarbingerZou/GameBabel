@@ -1,4 +1,5 @@
 import { useState, useEffect } from "react";
+import { useRouter } from "next/router";
 import {
   Box,
   Container,
@@ -374,6 +375,7 @@ export default function ProcessedArticlePage({
   article: initialArticle,
   processedContent: initialProcessedContent,
 }: ProcessedArticlePageProps) {
+  const router = useRouter();
   const [article] = useState<Article>(initialArticle);
   const [processedContent, setProcessedContent] =
     useState<ProcessedContent | null>(initialProcessedContent);
@@ -387,6 +389,33 @@ export default function ProcessedArticlePage({
       setImageUrls(urls);
     }
   }, [article]);
+
+  const handleDeleteArticle = async () => {
+    if (!confirm("Are you sure you want to delete this article?")) {
+      return;
+    }
+    try {
+      await deleteArticle(article._id);
+      router.push("/list");
+    } catch (error) {
+      console.error("Error deleting article:", error);
+      alert("Failed to delete article");
+    }
+  };
+
+  const handleDeleteProcessedArticle = async () => {
+    if (!confirm("Are you sure you want to delete this processed article?")) {
+      return;
+    }
+    try {
+      await deleteProcessedArticle(article._id, processedContent?._id);
+      // Refresh the page to show updated state (processed content removed)
+      router.reload();
+    } catch (error) {
+      console.error("Error deleting processed article:", error);
+      alert("Failed to delete processed article");
+    }
+  };
 
   const handleProcessContent = async () => {
     setLoading(true);
@@ -444,7 +473,7 @@ export default function ProcessedArticlePage({
             <ContentDisplay
               title="Original Content"
               content={article.content}
-              onDelete={() => deleteArticle(article._id)}
+              onDelete={handleDeleteArticle}
             />
             <ImageAnalysisContainer
               imageUrls={imageUrls}
@@ -456,9 +485,7 @@ export default function ProcessedArticlePage({
               <ContentDisplay
                 title="Processed Content"
                 content={processedContent.content}
-                onDelete={() =>
-                  deleteProcessedArticle(article._id, processedContent._id)
-                }
+                onDelete={handleDeleteProcessedArticle}
               />
             ) : (
               <Box

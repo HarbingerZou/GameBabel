@@ -1,4 +1,5 @@
 import { useEffect, useState } from "react";
+import { useRouter } from "next/router";
 import {
   Box,
   Container,
@@ -322,6 +323,7 @@ export default function ProcessedArticlePage({
   processedContent: initialProcessedContent,
   translations: initialTranslations,
 }: ProcessedArticlePageProps) {
+  const router = useRouter();
   const [processedContent] = useState<ProcessedContent>(
     initialProcessedContent
   );
@@ -329,6 +331,31 @@ export default function ProcessedArticlePage({
     useState<Translation[]>(initialTranslations);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+
+  const handleDeleteProcessedContent = async () => {
+    if (!confirm("Are you sure you want to delete this processed article?")) {
+      return;
+    }
+    try {
+      const response = await fetch(`/api/processed-article`, {
+        method: "DELETE",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          processedArticleId: processedContent._id,
+        }),
+      });
+      if (response.ok) {
+        router.push("/list");
+      } else {
+        alert("Failed to delete processed content");
+      }
+    } catch (error) {
+      console.error("Error deleting processed content:", error);
+      alert("Failed to delete processed content");
+    }
+  };
 
   const handleContentTranslate = async (targetLanguage: string) => {
     setLoading(true);
@@ -388,9 +415,7 @@ export default function ProcessedArticlePage({
             <ContentDisplay
               title="Processed Content"
               content={processedContent.content}
-              onDelete={() =>
-                handleDeleteProcessedContent(processedContent._id)
-              }
+              onDelete={handleDeleteProcessedContent}
             />
           </Grid>
           <Grid item xs={12} md={6}>
@@ -403,28 +428,6 @@ export default function ProcessedArticlePage({
       </Paper>
     </Container>
   );
-}
-
-async function handleDeleteProcessedContent(processedContentId: string) {
-  try {
-    const response = await fetch(`/api/processed-article`, {
-      method: "DELETE",
-      headers: {
-        "Content-Type": "application/json",
-      },
-      body: JSON.stringify({
-        processedArticleId: processedContentId,
-      }),
-    });
-    if (response.ok) {
-      alert("Processed content deleted successfully");
-    } else {
-      alert("Failed to delete processed content");
-    }
-  } catch (error) {
-    console.error("Error deleting processed content:", error);
-    alert("Failed to delete processed content");
-  }
 }
 
 export const getServerSideProps: GetServerSideProps = async (context) => {
