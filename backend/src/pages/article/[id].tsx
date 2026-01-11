@@ -16,6 +16,7 @@ import parse from "html-react-parser";
 import React from "react";
 import { OCRResult } from "../../common.type";
 import { extractImageUrls } from "@/src/utils/image_processing";
+import Toggle from "@/src/components/Toggle";
 
 interface ImageDisplayProps {
   url: string;
@@ -340,23 +341,14 @@ function ContentDisplay({ title, content }: ContentDisplayProps) {
         <Typography variant="h6" gutterBottom>
           {title}
         </Typography>
-        <Box>
-          <Button
-            variant={viewMode === "rendered" ? "contained" : "outlined"}
-            onClick={() => setViewMode("rendered")}
-            size="small"
-            sx={{ mr: 1 }}
-          >
-            Rendered
-          </Button>
-          <Button
-            variant={viewMode === "raw" ? "contained" : "outlined"}
-            onClick={() => setViewMode("raw")}
-            size="small"
-          >
-            Raw HTML
-          </Button>
-        </Box>
+        <Toggle
+          value={viewMode}
+          onChange={setViewMode}
+          leftValue="rendered"
+          rightValue="raw"
+          leftLabel="Rendered"
+          rightLabel="Raw HTML"
+        />
       </Box>
       <Box
         sx={{
