@@ -20,6 +20,7 @@ import { GetServerSideProps } from "next";
 import { Translation, Language, ProcessedContent } from "../../common.type";
 import parse from "html-react-parser";
 import React from "react";
+import ContentDisplay from "@/src/components/ContentDisplay";
 
 interface ProcessedArticlePageProps {
   processedContent: ProcessedContent;
@@ -146,85 +147,6 @@ function ProcessedContentHeader({
         <Button variant="contained" onClick={handleTranslate}>
           Translate
         </Button>
-      </Box>
-    </Box>
-  );
-}
-
-function ProcessedContentDisplay({
-  processedContent,
-}: {
-  processedContent: ProcessedContent;
-}) {
-  const [viewMode, setViewMode] = useState<"rendered" | "raw">("rendered");
-
-  const formatContent = () => {
-    if (viewMode === "rendered") {
-      return <Box>{parse(processedContent.content)}</Box>;
-    }
-    return (
-      <Typography
-        variant="body1"
-        component="pre"
-        sx={{
-          whiteSpace: "pre-wrap",
-          wordBreak: "break-word",
-          fontFamily: "monospace",
-          fontSize: "0.875rem",
-        }}
-      >
-        {processedContent.content}
-      </Typography>
-    );
-  };
-
-  return (
-    <Box>
-      <Box
-        sx={{
-          display: "flex",
-          justifyContent: "space-between",
-          alignItems: "center",
-          mb: 2,
-        }}
-      >
-        <Typography variant="h6" gutterBottom>
-          Content
-        </Typography>
-        <Box>
-          <Button
-            variant={viewMode === "rendered" ? "contained" : "outlined"}
-            onClick={() => setViewMode("rendered")}
-            size="small"
-            sx={{ mr: 1 }}
-          >
-            Rendered
-          </Button>
-          <Button
-            variant={viewMode === "raw" ? "contained" : "outlined"}
-            onClick={() => setViewMode("raw")}
-            size="small"
-          >
-            Raw HTML
-          </Button>
-        </Box>
-      </Box>
-      <Box
-        sx={{
-          p: 2,
-          border: "1px solid #ddd",
-          borderRadius: 1,
-          backgroundColor: "#f8f9fa",
-          height: "600px",
-          overflow: "auto",
-        }}
-      >
-        {formatContent()}
-        {processedContent.metadata.wordCount && (
-          <Typography variant="body2" color="text.secondary" sx={{ mt: 1 }}>
-            Word count: {processedContent.metadata.wordCount}
-          </Typography>
-        )}
       </Box>
     </Box>
   );
@@ -463,7 +385,13 @@ export default function ProcessedArticlePage({
         <Divider sx={{ my: 3 }} />
         <Grid container spacing={3}>
           <Grid item xs={12} md={6}>
-            <ProcessedContentDisplay processedContent={processedContent} />
+            <ContentDisplay
+              title="Processed Content"
+              content={processedContent.content}
+              onDelete={() =>
+                handleDeleteProcessedContent(processedContent._id)
+              }
+            />
           </Grid>
           <Grid item xs={12} md={6}>
             <TranslatedContent
@@ -475,6 +403,28 @@ export default function ProcessedArticlePage({
       </Paper>
     </Container>
   );
+}
+
+async function handleDeleteProcessedContent(processedContentId: string) {
+  try {
+    const response = await fetch(`/api/processed-content`, {
+      method: "DELETE",
+      headers: {
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({
+        processedContentId,
+      }),
+    });
+    if (response.ok) {
+      alert("Processed content deleted successfully");
+    } else {
+      alert("Failed to delete processed content");
+    }
+  } catch (error) {
+    console.error("Error deleting processed content:", error);
+    alert("Failed to delete processed content");
+  }
 }
 
 export const getServerSideProps: GetServerSideProps = async (context) => {

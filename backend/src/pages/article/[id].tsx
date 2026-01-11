@@ -1,5 +1,4 @@
 import { useState, useEffect } from "react";
-import { useRouter } from "next/router";
 import {
   Box,
   Container,
@@ -16,7 +15,7 @@ import parse from "html-react-parser";
 import React from "react";
 import { OCRResult } from "../../common.type";
 import { extractImageUrls } from "@/src/utils/image_processing";
-import Toggle from "@/src/components/Toggle";
+import ContentDisplay from "@/src/components/ContentDisplay";
 
 interface ImageDisplayProps {
   url: string;
@@ -38,14 +37,47 @@ interface ArticleMetadataProps {
   article: Article;
 }
 
-interface ContentDisplayProps {
-  title: string;
-  content: string;
-}
-
 interface ImagesContainerProps {
   imageUrls: string[];
   onOcrClick: (url: string) => void;
+}
+
+async function deleteArticle(articleId: string): Promise<void> {
+  const response = await fetch("/api/article", {
+    method: "DELETE",
+    headers: {
+      "Content-Type": "application/json",
+    },
+    body: JSON.stringify({
+      articleId,
+    }),
+  });
+
+  if (!response.ok) {
+    const error = await response.json();
+    throw new Error(error.details || "Failed to delete article");
+  }
+}
+
+async function deleteProcessedArticle(
+  articleId?: string,
+  processedArticleId?: string
+): Promise<void> {
+  const response = await fetch("/api/processed-article", {
+    method: "DELETE",
+    headers: {
+      "Content-Type": "application/json",
+    },
+    body: JSON.stringify({
+      articleId,
+      processedArticleId,
+    }),
+  });
+
+  if (!response.ok) {
+    const error = await response.json();
+    throw new Error(error.details || "Failed to delete processed article");
+  }
 }
 
 function ImageDisplay({ url, index, onOcrClick }: ImageDisplayProps) {
@@ -306,66 +338,6 @@ function ArticleMetadata({ article }: ArticleMetadataProps) {
   );
 }
 
-function ContentDisplay({ title, content }: ContentDisplayProps) {
-  const [viewMode, setViewMode] = useState<"rendered" | "raw">("rendered");
-  const formatContent = () => {
-    if (viewMode === "rendered") {
-      return <Box>{parse(content)}</Box>;
-    }
-    return (
-      <Typography
-        variant="body1"
-        component="pre"
-        sx={{
-          whiteSpace: "pre-wrap",
-          wordBreak: "break-word",
-          fontFamily: "monospace",
-          fontSize: "0.875rem",
-        }}
-      >
-        {content}
-      </Typography>
-    );
-  };
-
-  return (
-    <Box>
-      <Box
-        sx={{
-          display: "flex",
-          justifyContent: "space-between",
-          alignItems: "center",
-          mb: 2,
-        }}
-      >
-        <Typography variant="h6" gutterBottom>
-          {title}
-        </Typography>
-        <Toggle
-          value={viewMode}
-          onChange={setViewMode}
-          leftValue="rendered"
-          rightValue="raw"
-          leftLabel="Rendered"
-          rightLabel="Raw HTML"
-        />
-      </Box>
-      <Box
-        sx={{
-          p: 2,
-          border: "1px solid #ddd",
-          borderRadius: 1,
-          backgroundColor: "#f8f9fa",
-          height: "600px",
-          overflow: "auto",
-        }}
-      >
-        {formatContent()}
-      </Box>
-    </Box>
-  );
-}
-
 function Loading() {
   const [seconds, setSeconds] = useState(0);
   const [mounted, setMounted] = useState(false);
@@ -472,6 +444,7 @@ export default function ProcessedArticlePage({
             <ContentDisplay
               title="Original Content"
               content={article.content}
+              onDelete={() => deleteArticle(article._id)}
             />
             <ImageAnalysisContainer
               imageUrls={imageUrls}
@@ -483,6 +456,9 @@ export default function ProcessedArticlePage({
               <ContentDisplay
                 title="Processed Content"
                 content={processedContent.content}
+                onDelete={() =>
+                  deleteProcessedArticle(article._id, processedContent._id)
+                }
               />
             ) : (
               <Box
