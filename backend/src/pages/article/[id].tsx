@@ -40,8 +40,6 @@ interface ArticleMetadataProps {
 interface ContentDisplayProps {
   title: string;
   content: string;
-  viewMode: "rendered" | "raw";
-  onViewModeChange: (mode: "rendered" | "raw") => void;
 }
 
 interface ImagesContainerProps {
@@ -307,12 +305,8 @@ function ArticleMetadata({ article }: ArticleMetadataProps) {
   );
 }
 
-function ContentDisplay({
-  title,
-  content,
-  viewMode,
-  onViewModeChange,
-}: ContentDisplayProps) {
+function ContentDisplay({ title, content }: ContentDisplayProps) {
+  const [viewMode, setViewMode] = useState<"rendered" | "raw">("rendered");
   const formatContent = () => {
     if (viewMode === "rendered") {
       return <Box>{parse(content)}</Box>;
@@ -349,7 +343,7 @@ function ContentDisplay({
         <Box>
           <Button
             variant={viewMode === "rendered" ? "contained" : "outlined"}
-            onClick={() => onViewModeChange("rendered")}
+            onClick={() => setViewMode("rendered")}
             size="small"
             sx={{ mr: 1 }}
           >
@@ -357,7 +351,7 @@ function ContentDisplay({
           </Button>
           <Button
             variant={viewMode === "raw" ? "contained" : "outlined"}
-            onClick={() => onViewModeChange("raw")}
+            onClick={() => setViewMode("raw")}
             size="small"
           >
             Raw HTML
@@ -421,12 +415,6 @@ export default function ProcessedArticlePage({
     useState<ProcessedContent | null>(initialProcessedContent);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const [rawViewMode, setRawViewMode] = useState<"rendered" | "raw">(
-    "rendered"
-  );
-  const [processedViewMode, setProcessedViewMode] = useState<
-    "rendered" | "raw"
-  >("rendered");
   const [imageUrls, setImageUrls] = useState<string[]>([]);
 
   useEffect(() => {
@@ -492,8 +480,6 @@ export default function ProcessedArticlePage({
             <ContentDisplay
               title="Original Content"
               content={article.content}
-              viewMode={rawViewMode}
-              onViewModeChange={setRawViewMode}
             />
             <ImageAnalysisContainer
               imageUrls={imageUrls}
@@ -505,8 +491,6 @@ export default function ProcessedArticlePage({
               <ContentDisplay
                 title="Processed Content"
                 content={processedContent.content}
-                viewMode={processedViewMode}
-                onViewModeChange={setProcessedViewMode}
               />
             ) : (
               <Box
