@@ -3,6 +3,7 @@ import type { GetServerSideProps } from "next";
 import axios from "axios";
 import { useRouter } from "next/router";
 import { Category, Prompt } from "../../common.type";
+import DeleteButton from "@/src/components/DeleteButton";
 
 const categories: Category[] = [
   "OCR",
@@ -166,12 +167,7 @@ function PromptRow({
           >
             Edit
           </button>
-          <button
-            onClick={() => handleDeletePrompt(prompt._id)}
-            className="bg-red-600 hover:bg-red-700 text-white font-medium py-2 px-4 rounded transition-colors"
-          >
-            Delete
-          </button>
+          <DeleteButton onDelete={() => handleDeletePrompt(prompt._id)} />
         </div>
       </div>
     </div>
