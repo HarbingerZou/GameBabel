@@ -407,13 +407,13 @@ export default function ProcessedArticlePage({
 
 async function handleDeleteProcessedContent(processedContentId: string) {
   try {
-    const response = await fetch(`/api/processed-content`, {
+    const response = await fetch(`/api/processed-article`, {
       method: "DELETE",
       headers: {
         "Content-Type": "application/json",
       },
       body: JSON.stringify({
-        processedContentId,
+        processedArticleId: processedContentId,
       }),
     });
     if (response.ok) {
