@@ -482,11 +482,17 @@ export default function ProcessedArticlePage({
           </Grid>
           <Grid item xs={12} md={6}>
             {processedContent ? (
-              <ContentDisplay
-                title="Processed Content"
-                content={processedContent.content}
-                onDelete={handleDeleteProcessedArticle}
-              />
+              <>
+                <Typography variant="body2" color="text.secondary" sx={{ mb: 1 }}>
+                  Quality: {processedContent.metadata.qualityScore}/10
+                  {processedContent.metadata.topic && ` • Topic: ${processedContent.metadata.topic}`}
+                </Typography>
+                <ContentDisplay
+                  title="Processed Content"
+                  content={processedContent.content}
+                  onDelete={handleDeleteProcessedArticle}
+                />
+              </>
             ) : (
               <Box
                 sx={{

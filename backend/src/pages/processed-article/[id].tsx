@@ -107,7 +107,7 @@ function ProcessedContentHeader({
         <Typography variant="h4" component="h1" gutterBottom>
           Processed Content
         </Typography>
-        <Box sx={{ display: "flex", gap: 1, alignItems: "center" }}>
+        <Box sx={{ display: "flex", gap: 1, alignItems: "center", flexWrap: "wrap" }}>
           <Chip
             label={`Status: ${processedContent.status}`}
             color={
@@ -119,8 +119,9 @@ function ProcessedContentHeader({
             }
           />
           <Typography variant="body2" color="text.secondary">
-            Processed at:{" "}
-            {new Date(processedContent.metadata.processedAt).toLocaleString()}
+            Quality: {processedContent.metadata.qualityScore}/10
+            {processedContent.metadata.topic && ` • Topic: ${processedContent.metadata.topic}`}
+            {" • "}Processed at: {new Date(processedContent.metadata.processedAt).toLocaleString()}
           </Typography>
         </Box>
       </Box>
