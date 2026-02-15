@@ -150,3 +150,10 @@ export interface Prompt {
   content: string;
   category: Category;
 }
+
+export interface Topic {
+  _id: string;
+  name: string;
+  createdAt: string;
+  seoKeywords: string[];
+}

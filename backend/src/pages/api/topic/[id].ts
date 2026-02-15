@@ -14,7 +14,7 @@ export default async function handler(
     const response = await axios({
       method: req.method,
       url: `${DATA_PERSISTENCE_URL}/api/topic/${id}`,
-      data: req.method === "POST" ? req.body : undefined,
+      data: req.method === "POST" || req.method === "PUT" ? req.body : undefined,
       headers: {
         "Content-Type": "application/json",
       },
