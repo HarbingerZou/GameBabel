@@ -483,6 +483,12 @@ export default function ProcessedArticlePage({
           <Grid item xs={12} md={6}>
             {processedContent ? (
               <>
+                <Typography variant="h6" sx={{ mb: 1, fontWeight: 600 }}>
+                  SEO Title:{" "}
+                  {processedContent.seoTitle || (
+                    <span style={{ color: "#999", fontStyle: "italic" }}>No SEO title generated</span>
+                  )}
+                </Typography>
                 <Typography variant="body2" color="text.secondary" sx={{ mb: 1 }}>
                   Quality: {processedContent.metadata.qualityScore}/10
                   {processedContent.metadata.topic && ` • Topic: ${processedContent.metadata.topic}`}

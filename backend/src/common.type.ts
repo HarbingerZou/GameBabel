@@ -49,6 +49,7 @@ export interface ProcessedContent {
   _id: string;
   originalContentId: string;
   title: string;
+  seoTitle: string;
   author: string;
   url: string;
   summary: string;
@@ -120,6 +121,7 @@ export interface OcrHTML {
 }
 
 export interface Summary {
+  seoTitle: string;
   summary: string;
 }
 

@@ -45,11 +45,11 @@ export const processContent = async (
   );
 
   const topicOptions = await getTopicNames();
-  const [summary, contentAnalysis] = await Promise.all([
-    getSummary(polishedContent),
-    getContentAnalysis(polishedContent, topicOptions),
-  ]);
+  const contentAnalysis = await getContentAnalysis(polishedContent, topicOptions);
   const { qualityScore, topic } = contentAnalysis;
+
+  const summary = await getSummary(polishedContent, topic);
+
   const processedContentResponse = await storeProcessedContent(
     article,
     polishedContent,
@@ -295,18 +295,26 @@ async function getPrompt(category: Category): Promise<Prompt> {
   return promptResponse.data;
 }
 
-async function getSummary(content: string): Promise<string> {
+async function getSEOKeywords(topicName: string): Promise<string[]> {
+  const keywordsResponse = await axios.get(
+    `${DATA_PERSISTENCE_URL}/api/topic/${topicName}/keywords`
+  );
+  return keywordsResponse.data;
+}
+async function getSummary(content: string, topicName: string): Promise<Summary> {
   console.log("start get summary");
-  const prompt = await getPrompt("Summary");
+  const prompt = await getPrompt("Summary")
+  const seoKeywords = await getSEOKeywords(topicName);
   const summaryResponse = await axios.post<Summary>(
     `${DS_SERVICE_URL}/api/summarize`,
     {
       content,
       prompt: prompt.content,
+      seoKeywords: seoKeywords,
     }
   );
   console.log("summaryResponse", summaryResponse.data);
-  return summaryResponse.data.summary;
+  return summaryResponse.data;
 }
 
 async function getContentAnalysis(
@@ -325,7 +333,7 @@ async function storeProcessedContent(
   article: Article,
   processedContent: string,
   language: string,
-  summary: string,
+  summary: Summary,
   topic: string,
   qualityScore: number
 ): Promise<ProcessedContent> {
@@ -339,7 +347,8 @@ async function storeProcessedContent(
         title: article.title,
         author: article.author,
         url: article.url,
-        summary: summary,
+        summary: summary.summary,
+        seoTitle: summary.seoTitle,
         content: processedContent,
         language: language,
         source: article.source,
@@ -377,6 +386,7 @@ function directReturn(article: Article, content: string): ProcessedContent {
     author: article.author,
     url: article.url,
     summary: "",
+    seoTitle: "",
     content: content,
     language: article.language,
     source: article.source,
