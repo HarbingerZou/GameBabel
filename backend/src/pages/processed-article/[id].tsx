@@ -354,6 +354,7 @@ function TranslatedContent({
           </Box>
           <ContentMeta
             title={trans.title}
+            seoTitle={trans.seoTitle}
             summary={trans.summary}
             qualityScore={trans.metadata.qualityScore}
             topic={trans.metadata.topic}

@@ -72,6 +72,7 @@ export interface Translation {
   processedContentId: string;
   targetLanguage: Language;
   title: string;
+  seoTitle: string;
   author: string;
   url: string;
   summary: string;

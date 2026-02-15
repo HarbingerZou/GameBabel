@@ -30,11 +30,12 @@ export const translateContent = async (
     return null;
   }
   // Translate the processed content
-  const { translatedContent, translatedTitle, translatedSummary } =
+  const { translatedContent, translatedTitle, translatedSeoTitle, translatedSummary } =
     await getTranslatedHtml(
       processedContent.content,
       targetLanguage,
       processedContent.title,
+      processedContent.seoTitle,
       processedContent.summary
     );
 
@@ -44,6 +45,7 @@ export const translateContent = async (
     targetLanguage,
     translatedContent,
     translatedTitle,
+    translatedSeoTitle,
     translatedSummary
   );
 
@@ -94,10 +96,12 @@ async function getTranslatedHtml(
   html: string,
   language: Language,
   title: string,
+  seoTitle: string,
   summary: string
 ): Promise<{
   translatedContent: string;
   translatedTitle: string;
+  translatedSeoTitle: string;
   translatedSummary: string;
 }> {
   console.log("start translate html");
@@ -108,6 +112,7 @@ async function getTranslatedHtml(
       htmlContent: html,
       language: language,
       title: title,
+      seoTitle: seoTitle,
       summary: summary,
       prompt: prompt.content,
     }
@@ -116,11 +121,12 @@ async function getTranslatedHtml(
   const {
     translatedHtml: translatedContent,
     title: translatedTitle,
+    seoTitle: translatedSeoTitle,
     summary: translatedSummary,
   } = translateResponse.data;
 
   console.log("Translated HTML length:", translatedContent.length);
-  return { translatedContent, translatedTitle, translatedSummary };
+  return { translatedContent, translatedTitle, translatedSeoTitle, translatedSummary };
 }
 
 async function storeTranslation(
@@ -128,6 +134,7 @@ async function storeTranslation(
   targetLanguage: string,
   translatedContent: string,
   title: string,
+  seoTitle:string|null,
   summary: string
 ): Promise<Translation> {
   const { _id } = processedContent;
@@ -147,6 +154,7 @@ async function storeTranslation(
           translationProvider: "DeepSeek",
         },
         title: title,
+        seoTitle:seoTitle,
         author: processedContent.author,
         url: processedContent.url,
         summary: summary,
