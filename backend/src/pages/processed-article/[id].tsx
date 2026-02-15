@@ -50,6 +50,90 @@ function TabPanel(props: TabPanelProps) {
   );
 }
 
+interface ContentMetaProps {
+  title: string;
+  seoTitle?: string | null;
+  summary: string | null;
+  qualityScore: number;
+  topic: string | null;
+}
+
+function ContentMeta({
+  title,
+  seoTitle,
+  summary,
+  qualityScore,
+  topic,
+}: ContentMetaProps) {
+  const getQualityColor = (score: number) => {
+    if (score >= 8) return "text-emerald-600 bg-emerald-50";
+    if (score >= 5) return "text-amber-600 bg-amber-50";
+    return "text-red-600 bg-red-50";
+  };
+
+  return (
+    <div className="mt-4 p-4 rounded-lg border border-slate-200 bg-slate-50/50">
+      <div className="mb-3">
+        <span className="text-xs font-medium uppercase tracking-wider text-slate-500">
+          Title
+        </span>
+        <p className="mt-1 text-lg font-semibold text-slate-800">
+          {title}
+        </p>
+      </div>
+
+      <div className="mb-3">
+        <span className="text-xs font-medium uppercase tracking-wider text-slate-500">
+          SEO Title
+        </span>
+        <p className="mt-1 text-base font-semibold text-slate-800">
+          {seoTitle || (
+            <span className="text-slate-400 italic font-normal">
+              No SEO title generated
+            </span>
+          )}
+        </p>
+      </div>
+  
+
+      <div className="mb-3">
+        <span className="text-xs font-medium uppercase tracking-wider text-slate-500">
+          Summary
+        </span>
+        <p className="mt-1 text-sm text-slate-700 leading-relaxed">
+          {summary || (
+            <span className="text-slate-400 italic">
+              No summary generated
+            </span>
+          )}
+        </p>
+      </div>
+
+      <div className="flex items-center gap-4 flex-wrap">
+        <div className="flex items-center gap-2">
+          <span className="text-xs font-medium uppercase tracking-wider text-slate-500">
+            Quality
+          </span>
+          <span
+            className={`px-2 py-0.5 rounded-full text-sm font-semibold ${getQualityColor(qualityScore)}`}
+          >
+            {qualityScore}/10
+          </span>
+        </div>
+
+        <div className="flex items-center gap-2">
+          <span className="text-xs font-medium uppercase tracking-wider text-slate-500">
+            Topic
+          </span>
+          <span className="px-2 py-0.5 rounded-full text-sm font-medium bg-indigo-50 text-indigo-700">
+            {topic ? topic : <span className="text-slate-400 italic font-normal">No topic generated</span>}
+          </span>
+        </div>
+      </div>
+    </div>
+  );
+}
+
 function ProcessedContentHeader({
   processedContent,
   onTranslate,
@@ -268,6 +352,12 @@ function TranslatedContent({
           >
             <Box>{parse(trans.content)}</Box>
           </Box>
+          <ContentMeta
+            title={trans.title}
+            summary={trans.summary}
+            qualityScore={trans.metadata.qualityScore}
+            topic={trans.metadata.topic}
+          />
         </TabPanel>
       ))}
       {allTranslations.length === 0 && (
@@ -418,12 +508,20 @@ export default function ProcessedArticlePage({
               content={processedContent.content}
               onDelete={handleDeleteProcessedContent}
             />
+            <ContentMeta
+              title={processedContent.title}
+              seoTitle={processedContent.seoTitle}
+              summary={processedContent.summary}
+              qualityScore={processedContent.metadata.qualityScore}
+              topic={processedContent.metadata.topic}
+            />
           </Grid>
           <Grid item xs={12} md={6}>
             <TranslatedContent
               translations={translations}
               onTranslationsUpdate={setTranslations}
             />
+            
           </Grid>
         </Grid>
       </Paper>
