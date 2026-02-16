@@ -23,7 +23,7 @@ function CSVUpload({ topic, setTopic }: CSVUploadProps) {
 
     if (keywords.length === 0) return;
 
-    const updatedKeywords = [...(topic.seoKeywords || []), ...keywords];
+    const updatedKeywords = Array.from(new Set([...(topic.seoKeywords || []), ...keywords]));
     const response = await fetch(`/api/topic/${topic._id}`, {
       method: "PUT",
       headers: { "Content-Type": "application/json" },
@@ -76,8 +76,8 @@ export default function TopicPage({ initialTopic }: TopicPageProps) {
     e.preventDefault();
     if (!newKeywordString.trim()) return;
 
-    const keywords = newKeywordString.split(",").map((k) => k.trim());
-    const updatedKeywords = [...(topic.seoKeywords || []), ...keywords];
+    const keywords = newKeywordString.split(",").map((k) => k.trim()).filter((k) => k.length > 0);
+    const updatedKeywords = Array.from(new Set([...(topic.seoKeywords || []), ...keywords]));
     const response = await fetch(`/api/topic/${topic._id}`, {
       method: "PUT",
       headers: { "Content-Type": "application/json" },
