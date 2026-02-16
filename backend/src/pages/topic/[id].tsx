@@ -1,7 +1,64 @@
-import { useState } from "react";
+import { useState, useRef } from "react";
 import type { GetServerSideProps } from "next";
 import axios from "axios";
 import type { Topic } from "@/src/common.type";
+
+interface CSVUploadProps {
+  topic: Topic;
+  setTopic: React.Dispatch<React.SetStateAction<Topic | null>>;
+}
+
+function CSVUpload({ topic, setTopic }: CSVUploadProps) {
+  const fileInputRef = useRef<HTMLInputElement>(null);
+
+  const handleCsvUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    const text = await file.text();
+    const keywords = text
+      .split(/[\n,]/)
+      .map((k) => k.trim())
+      .filter((k) => k.length > 0);
+
+    if (keywords.length === 0) return;
+
+    const updatedKeywords = [...(topic.seoKeywords || []), ...keywords];
+    const response = await fetch(`/api/topic/${topic._id}`, {
+      method: "PUT",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ seoKeywords: updatedKeywords }),
+    });
+
+    if (response.ok) {
+      setTopic({ ...topic, seoKeywords: updatedKeywords });
+    }
+
+    if (fileInputRef.current) {
+      fileInputRef.current.value = "";
+    }
+  };
+
+  return (
+    <div className="flex items-center gap-2 mb-4">
+      <input
+        type="file"
+        ref={fileInputRef}
+        accept=".csv"
+        onChange={handleCsvUpload}
+        className="hidden"
+      />
+      <button
+        type="button"
+        onClick={() => fileInputRef.current?.click()}
+        className="px-4 py-2 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50"
+      >
+        Upload CSV
+      </button>
+      <span className="text-xs text-gray-500">Import keywords from a CSV file</span>
+    </div>
+  );
+}
 
 interface TopicPageProps {
   initialTopic: Topic | null;
@@ -72,6 +129,8 @@ export default function TopicPage({ initialTopic }: TopicPageProps) {
           </button>
         </form>
         <p className="text-xs text-gray-500 mb-4">Separate multiple keywords with commas (,)</p>
+
+        <CSVUpload topic={topic} setTopic={setTopic} />
 
         <div className="flex flex-wrap gap-2">
           {(topic.seoKeywords || []).map((keyword) => (
