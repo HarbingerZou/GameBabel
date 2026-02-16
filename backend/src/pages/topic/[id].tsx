@@ -9,7 +9,7 @@ interface TopicPageProps {
 
 export default function TopicPage({ initialTopic }: TopicPageProps) {
   const [topic, setTopic] = useState<Topic | null>(initialTopic);
-  const [newKeyword, setNewKeyword] = useState("");
+  const [newKeywordString, setNewKeywordString] = useState("");
 
   if (!topic) {
     return <div className="max-w-3xl mx-auto mt-8 px-4">Topic not found</div>;
@@ -17,9 +17,10 @@ export default function TopicPage({ initialTopic }: TopicPageProps) {
 
   const handleAddKeyword = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!newKeyword.trim()) return;
+    if (!newKeywordString.trim()) return;
 
-    const updatedKeywords = [...(topic.seoKeywords || []), newKeyword.trim()];
+    const keywords = newKeywordString.split(",").map((k) => k.trim());
+    const updatedKeywords = [...(topic.seoKeywords || []), ...keywords];
     const response = await fetch(`/api/topic/${topic._id}`, {
       method: "PUT",
       headers: { "Content-Type": "application/json" },
@@ -28,7 +29,7 @@ export default function TopicPage({ initialTopic }: TopicPageProps) {
 
     if (response.ok) {
       setTopic({ ...topic, seoKeywords: updatedKeywords });
-      setNewKeyword("");
+      setNewKeywordString("");
     }
   };
 
@@ -55,12 +56,12 @@ export default function TopicPage({ initialTopic }: TopicPageProps) {
       <div className="bg-white rounded-lg shadow p-6">
         <h2 className="text-xl font-semibold text-gray-900 mb-4">SEO Keywords</h2>
 
-        <form onSubmit={handleAddKeyword} className="flex gap-4 mb-4">
+        <form onSubmit={handleAddKeyword} className="flex gap-4 mb-2">
           <input
             type="text"
             placeholder="Add keyword"
-            value={newKeyword}
-            onChange={(e) => setNewKeyword(e.target.value)}
+            value={newKeywordString}
+            onChange={(e) => setNewKeywordString(e.target.value)}
             className="flex-1 px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
           />
           <button
@@ -70,6 +71,7 @@ export default function TopicPage({ initialTopic }: TopicPageProps) {
             Add
           </button>
         </form>
+        <p className="text-xs text-gray-500 mb-4">Separate multiple keywords with commas (,)</p>
 
         <div className="flex flex-wrap gap-2">
           {(topic.seoKeywords || []).map((keyword) => (
