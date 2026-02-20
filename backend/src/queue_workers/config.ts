@@ -1,11 +1,17 @@
 import { QueueOptions, WorkerOptions } from "bullmq";
+import Redis from "ioredis";
+
+// BullMQ requires maxRetriesPerRequest to be null
+// This allows BullMQ to handle retries internally
+export const redisConnection = new Redis(
+  process.env.REDIS_URL || "redis://localhost:6379",
+  {
+    maxRetriesPerRequest: null,
+  }
+);
 
 export const defaultQueueOptions: QueueOptions = {
-  connection: {
-    host: process.env.REDIS_HOST || "localhost",
-    port: parseInt(process.env.REDIS_PORT || "6379"),
-    password: process.env.REDIS_PASSWORD,
-  },
+  connection: redisConnection,
   defaultJobOptions: {
     attempts: 3,
     backoff: {
@@ -18,10 +24,6 @@ export const defaultQueueOptions: QueueOptions = {
 };
 
 export const defaultWorkerOptions: WorkerOptions = {
-  connection: {
-    host: process.env.REDIS_HOST || "localhost",
-    port: parseInt(process.env.REDIS_PORT || "6379"),
-    password: process.env.REDIS_PASSWORD,
-  },
+  connection: redisConnection,
   concurrency: 4, // Process only 1 job at a time
 };

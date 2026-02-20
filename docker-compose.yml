@@ -8,8 +8,7 @@ services:
       - "3001:3000"
     environment:
       - NODE_ENV=production
-      - REDIS_HOST=redis
-      - REDIS_PORT=6379
+      - REDIS_URL=redis://redis:6379
       - NEXT_PUBLIC_CRAWLER_URL=http://crawler:3000
       - NEXT_PUBLIC_DATA_PERSISTENCE_URL=http://data-persistence:3000
       - NEXT_PUBLIC_OCR_URL=http://image-ocr:3000

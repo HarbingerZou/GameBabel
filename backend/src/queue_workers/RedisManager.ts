@@ -1,7 +1,6 @@
 import { JobQueue, JobData, JobResult, JobStats, JobInfo } from "./JobQueue";
 import Redis from "ioredis";
-import { defaultQueueOptions } from "./config";
-
+import { redisConnection } from "./config";
 export interface QueueInfo {
   name: string;
   stats: JobStats;
@@ -14,21 +13,10 @@ export class RedisManager {
 
   private static initializeRedis(): Redis {
     if (!RedisManager.redis) {
-      const conn = defaultQueueOptions.connection;
-      if (
-        conn &&
-        typeof conn === "object" &&
-        "host" in conn &&
-        "port" in conn
-      ) {
-        RedisManager.redis = new Redis({
-          host: (conn as any).host,
-          port: (conn as any).port,
-          password: (conn as any).password,
-        });
-      } else {
-        RedisManager.redis = new Redis();
-      }
+      RedisManager.redis = redisConnection;
+      
+      RedisManager.redis.on("connect", () => console.log("RedisManager: Redis connected"));
+      RedisManager.redis.on("error", (err) => console.error("RedisManager: Redis error", err));
     }
     return RedisManager.redis;
   }
