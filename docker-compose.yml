@@ -38,7 +38,7 @@ services:
       - "8002:3000"
     environment:
       - DEEPSEEK_API_KEY=sk-c09798b2597c4769879fb29209e3f756
-      - GEMINI_API_KEY=AIzaSyD6vv_xc9CZvNvkMt2nJy5aiiy3StGzpHg
+      - GEMINI_API_KEY=AIzaSyC9ikLQ4m2PgfRDau_aU2A_yu6y4M-MZDE
     restart: unless-stopped
 
   crawler:
