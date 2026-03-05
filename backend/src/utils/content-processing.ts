@@ -21,7 +21,7 @@ const DATA_PERSISTENCE_URL =
   "http://data-persistence:3000";
 
 export const processContent = async (
-  articleId: string
+  articleId: string,
 ): Promise<ProcessedContent | null> => {
   const article: Article = await getArticle(articleId);
   const shouldReject = await shouldRejectProcessingContent(article);
@@ -41,11 +41,14 @@ export const processContent = async (
 
   const polishedContent = await getPolishedContent(
     article.title,
-    processedContent
+    processedContent,
   );
 
   const topicOptions = await getTopicNames();
-  const contentAnalysis = await getContentAnalysis(polishedContent, topicOptions);
+  const contentAnalysis = await getContentAnalysis(
+    polishedContent,
+    topicOptions,
+  );
   const { qualityScore, topic } = contentAnalysis;
 
   const summary = await getSummary(polishedContent, topic);
@@ -56,7 +59,7 @@ export const processContent = async (
     article.language,
     summary,
     topic,
-    qualityScore
+    qualityScore,
   );
 
   //const processedContentResponse = directReturn(article, polishedContent);
@@ -64,11 +67,11 @@ export const processContent = async (
 };
 
 async function shouldRejectProcessingContent(
-  article: Article
+  article: Article,
 ): Promise<boolean> {
   const _id = article._id;
   const processedContentResponse = await axios.get(
-    `${DATA_PERSISTENCE_URL}/api/processed-content/${_id}`
+    `${DATA_PERSISTENCE_URL}/api/processed-content/${_id}`,
   );
   const processedContent = processedContentResponse.data;
   if (processedContent !== null) {
@@ -86,29 +89,24 @@ async function imageProcessingBranch(article: Article): Promise<OcrHTML[]> {
   }
   // Convert relative URL to absolute URL if needed
   const absoluteImageUrls = imageUrls.map((imageUrl: string) =>
-    imageUrl.startsWith("//") ? `https:${imageUrl}` : imageUrl
+    imageUrl.startsWith("//") ? `https:${imageUrl}` : imageUrl,
   );
-  console.log("Absolute image URLs:", absoluteImageUrls);
-
-  const ocrResults: { imageUrl: string; data: OCRResultData[] }[] = [];
-  console.log("start get ocr results");
-  for (let index = 0; index < absoluteImageUrls.length; index++) {
-    const imageUrl = absoluteImageUrls[index];
-    try {
-      console.log(`Processing image: ${imageUrl}, index: ${index}`);
-
-      const data = await getOcrResults(article._id, imageUrl);
-      ocrResults.push({
-        imageUrl,
-        data,
-      });
-      console.log(`Processed image: ${imageUrl}, index: ${index}`);
-    } catch (error) {
-      console.error(`Failed to process image ${imageUrl}:`, error);
-    }
-  }
-  const ocrHtmls = await getOcrHtmls(ocrResults);
-  return ocrHtmls;
+  const ocrHtmls: { imageUrl: string; htmlContent: string }[] =
+    await Promise.all(
+      absoluteImageUrls.map(async (imageUrl: string) => {
+        const ocrHtml = await axios.post(
+          `${DS_SERVICE_URL}/api/transform-image-ocr`,
+          {
+            imageUrl: imageUrl,
+          },
+        );
+        return ocrHtml.data;
+      }),
+    );
+  return ocrHtmls.map((ocrHtml) => ({
+    imageUrl: ocrHtml.imageUrl,
+    ocrHtml: ocrHtml.htmlContent,
+  }));
 }
 
 async function textProcessingBranch(article: Article): Promise<string> {
@@ -123,7 +121,7 @@ async function getArticle(articleId: string): Promise<Article> {
       headers: {
         Accept: "application/json",
       },
-    }
+    },
   );
 
   if (!articleResponse.ok) {
@@ -133,89 +131,11 @@ async function getArticle(articleId: string): Promise<Article> {
     const errorText = await articleResponse.text();
     console.error("Error response:", errorText);
     throw new Error(
-      `Failed to fetch article: ${articleResponse.status} ${errorText}`
+      `Failed to fetch article: ${articleResponse.status} ${errorText}`,
     );
   }
   const article = await articleResponse.json();
   return article;
-}
-
-async function getOcrResults(
-  articleId: string,
-  imageUrl: string
-): Promise<OCRResultData[]> {
-  const ocrResponse = await axios.post<OCRResult>(
-    `${OCR_SERVICE_URL}/api/ocr`,
-    {
-      articleId,
-      imageUrl: imageUrl,
-    }
-  );
-  const ocrResult: OCRResult = ocrResponse.data;
-  console.log(`OCR result for ${imageUrl}:`, ocrResult);
-
-  let data: OCRResultData[] = ocrResult.data;
-  /*if (data.length === 0) {
-      console.log(`Skipping image ${imageUrl} due to empty OCR result`);
-      return null;
-    }*/
-  return data;
-}
-
-async function getOcrHtmls(
-  ocrResults: { imageUrl: string; data: OCRResultData[] }[]
-): Promise<OcrHTML[]> {
-  console.log("start get OCR HTML for", ocrResults.length, "images");
-
-  // Create promises for parallel processing
-  const transformPromises = ocrResults.map(async (ocrResult) => {
-    try {
-      console.log(`Processing OCR HTML for image: ${ocrResult.imageUrl}`);
-
-      // Transform OCR data to the format expected by transform-ocr endpoint
-      const ocrData: OCRResultData[] = ocrResult.data;
-      const prompt = await getPrompt("OCR");
-
-      const transformResponse = await axios.post(
-        `${DS_SERVICE_URL}/api/transform-ocr`,
-        {
-          ocrResult: ocrData,
-          prompt: prompt.content,
-        }
-      );
-
-      const transformedHtml = transformResponse.data.htmlContent;
-      console.log(
-        `Transformed HTML length for ${ocrResult.imageUrl}:`,
-        transformedHtml?.length || 0
-      );
-
-      return {
-        imageUrl: ocrResult.imageUrl,
-        ocrHtml: transformedHtml || "",
-      };
-    } catch (error) {
-      console.error(
-        `Failed to transform OCR for image ${ocrResult.imageUrl}:`,
-        error
-      );
-      // Return empty result for failed transformations
-      return {
-        imageUrl: ocrResult.imageUrl,
-        ocrHtml: "",
-      };
-    }
-  });
-
-  // Wait for all transformations to complete
-  const ocrHtmlResults = await Promise.all(transformPromises);
-
-  console.log(
-    "Completed OCR HTML transformation for",
-    ocrHtmlResults.length,
-    "images"
-  );
-  return ocrHtmlResults;
 }
 
 async function getCleanedHtml(htmlContent: string): Promise<string> {
@@ -228,7 +148,7 @@ async function getCleanedHtml(htmlContent: string): Promise<string> {
       {
         htmlContent: htmlContent,
         prompt: prompt.content,
-      }
+      },
     );
 
     const cleanedHtml = cleanedResponse.data.content;
@@ -243,7 +163,7 @@ async function getCleanedHtml(htmlContent: string): Promise<string> {
 
 async function getMergedHtml(
   ocrHtmls: OcrHTML[],
-  originalHtml: string
+  originalHtml: string,
 ): Promise<string> {
   console.log("start merge OCR HTML");
   const prompt = await getPrompt("Merging");
@@ -254,7 +174,7 @@ async function getMergedHtml(
       content: originalHtml,
       ocrHtmls: ocrHtmls,
       prompt: prompt.content,
-    }
+    },
   );
 
   const mergedHtml = mergeResponse.data.mergedHtml;
@@ -264,7 +184,7 @@ async function getMergedHtml(
 
 async function getPolishedContent(
   title: string,
-  content: string
+  content: string,
 ): Promise<string> {
   console.log("start get polished content");
   const prompt = await getPrompt("Polishing");
@@ -274,7 +194,7 @@ async function getPolishedContent(
       title,
       content,
       prompt: prompt.content,
-    }
+    },
   );
   console.log("polishedContentResponse", polishedContentResponse.data);
   return polishedContentResponse.data.content;
@@ -283,27 +203,30 @@ async function getPolishedContent(
 async function getTopicNames(): Promise<string[]> {
   console.log("start get topic names");
   const topicsResponse = await axios.get(
-    `${DATA_PERSISTENCE_URL}/api/topic/names`
+    `${DATA_PERSISTENCE_URL}/api/topic/names`,
   );
   return topicsResponse.data.map((topic: any) => topic.name);
 }
 
 async function getPrompt(category: Category): Promise<Prompt> {
   const promptResponse = await axios.get(
-    `${DATA_PERSISTENCE_URL}/api/prompt/category/${category}`
+    `${DATA_PERSISTENCE_URL}/api/prompt/category/${category}`,
   );
   return promptResponse.data;
 }
 
 async function getSEOKeywords(topicName: string): Promise<string[]> {
   const keywordsResponse = await axios.get(
-    `${DATA_PERSISTENCE_URL}/api/topic/${topicName}/keywords`
+    `${DATA_PERSISTENCE_URL}/api/topic/${topicName}/keywords`,
   );
   return keywordsResponse.data;
 }
-async function getSummary(content: string, topicName: string): Promise<Summary> {
+async function getSummary(
+  content: string,
+  topicName: string,
+): Promise<Summary> {
   console.log("start get summary");
-  const prompt = await getPrompt("Summary")
+  const prompt = await getPrompt("Summary");
   const seoKeywords = await getSEOKeywords(topicName);
   const summaryResponse = await axios.post<Summary>(
     `${DS_SERVICE_URL}/api/summarize`,
@@ -311,7 +234,7 @@ async function getSummary(content: string, topicName: string): Promise<Summary> 
       content,
       prompt: prompt.content,
       seoKeywords: seoKeywords,
-    }
+    },
   );
   console.log("summaryResponse", summaryResponse.data);
   return summaryResponse.data;
@@ -319,13 +242,13 @@ async function getSummary(content: string, topicName: string): Promise<Summary> 
 
 async function getContentAnalysis(
   content: string,
-  topicOptions: string[]
+  topicOptions: string[],
 ): Promise<ContentAnalysis> {
   console.log("start get quality score");
   const prompt = await getPrompt("Analysis");
   const contentAnalysisResponse = await axios.post<ContentAnalysis>(
     `${DS_SERVICE_URL}/api/analyze`,
-    { content, topicOptions, prompt: prompt.content }
+    { content, topicOptions, prompt: prompt.content },
   );
   return contentAnalysisResponse.data;
 }
@@ -335,7 +258,7 @@ async function storeProcessedContent(
   language: string,
   summary: Summary,
   topic: string,
-  qualityScore: number
+  qualityScore: number,
 ): Promise<ProcessedContent> {
   try {
     console.log("start store processed content");
@@ -361,12 +284,12 @@ async function storeProcessedContent(
           wordCount: processedContent.split(/\s+/).length,
           processingVersion: 1,
         },
-      }
+      },
     );
 
     if (response.status !== 201) {
       throw new Error(
-        `Failed to store processed content: ${response.statusText}`
+        `Failed to store processed content: ${response.statusText}`,
       );
     }
     const processedContentResponse = response.data;

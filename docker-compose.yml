@@ -29,19 +29,6 @@ services:
       - redis_data:/data
     command: sh -c "redis-server --appendonly yes & sleep 2 && redis-cli FLUSHALL && wait"
     restart: unless-stopped
-
-  image-ocr:
-    platform: linux/amd64
-    build:
-      context: ./image-ocr
-      dockerfile: Dockerfile
-    container_name: translayze-image-ocr
-    ports:
-      - "8001:3000"
-    environment:
-      - TESSDATA_PREFIX=/usr/share/tesseract-ocr/5/tessdata/
-    restart: unless-stopped
-
   ds-services:
     build:
       context: ./ds-services
@@ -51,6 +38,7 @@ services:
       - "8002:3000"
     environment:
       - DEEPSEEK_API_KEY=sk-c09798b2597c4769879fb29209e3f756
+      - GEMINI_API_KEY=AIzaSyD6vv_xc9CZvNvkMt2nJy5aiiy3StGzpHg
     restart: unless-stopped
 
   crawler:
