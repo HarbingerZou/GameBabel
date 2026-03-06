@@ -91,22 +91,27 @@ async function imageProcessingBranch(article: Article): Promise<OcrHTML[]> {
   const absoluteImageUrls = imageUrls.map((imageUrl: string) =>
     imageUrl.startsWith("//") ? `https:${imageUrl}` : imageUrl,
   );
-  const ocrHtmls: { imageUrl: string; htmlContent: string }[] =
-    await Promise.all(
-      absoluteImageUrls.map(async (imageUrl: string) => {
-        const ocrHtml = await axios.post(
-          `${DS_SERVICE_URL}/api/transform-image-ocr`,
-          {
-            imageUrl: imageUrl,
-          },
-        );
-        return ocrHtml.data;
-      }),
-    );
-  return ocrHtmls.map((ocrHtml) => ({
-    imageUrl: ocrHtml.imageUrl,
-    ocrHtml: ocrHtml.htmlContent,
-  }));
+  try {
+    const ocrHtmls: { imageUrl: string; htmlContent: string }[] =
+      await Promise.all(
+        absoluteImageUrls.map(async (imageUrl: string) => {
+          const ocrHtml = await axios.post(
+            `${DS_SERVICE_URL}/api/transform-image-ocr`,
+            {
+              imageUrl: imageUrl,
+            },
+          );
+          return ocrHtml.data;
+        }),
+      );
+    return ocrHtmls.map((ocrHtml) => ({
+      imageUrl: ocrHtml.imageUrl,
+      ocrHtml: ocrHtml.htmlContent,
+    }));
+  } catch (error) {
+    console.error("Failed to process image processing branch:", error);
+    throw error;
+  }
 }
 
 async function textProcessingBranch(article: Article): Promise<string> {
@@ -156,8 +161,7 @@ async function getCleanedHtml(htmlContent: string): Promise<string> {
     return cleanedHtml;
   } catch (error) {
     console.error("Failed to clean HTML content:", error);
-    // Return original content if cleaning fails
-    return htmlContent;
+    throw error;
   }
 }
 
@@ -166,20 +170,25 @@ async function getMergedHtml(
   originalHtml: string,
 ): Promise<string> {
   console.log("start merge OCR HTML");
-  const prompt = await getPrompt("Merging");
-  // Then, merge the original HTML with the OCR HTML results
-  const mergeResponse = await axios.post(
-    `${DS_SERVICE_URL}/api/merge-ocr-html`,
-    {
-      content: originalHtml,
-      ocrHtmls: ocrHtmls,
-      prompt: prompt.content,
-    },
-  );
+  try {
+    const prompt = await getPrompt("Merging");
+    // Then, merge the original HTML with the OCR HTML results
+    const mergeResponse = await axios.post(
+      `${DS_SERVICE_URL}/api/merge-ocr-html`,
+      {
+        content: originalHtml,
+        ocrHtmls: ocrHtmls,
+        prompt: prompt.content,
+      },
+    );
 
-  const mergedHtml = mergeResponse.data.mergedHtml;
-  console.log("Merged HTML length:", mergedHtml.length);
-  return mergedHtml;
+    const mergedHtml = mergeResponse.data.mergedHtml;
+    console.log("Merged HTML length:", mergedHtml.length);
+    return mergedHtml;
+  } catch (error) {
+    console.error("Failed to merge HTML content:", error);
+    throw error;
+  }
 }
 
 async function getPolishedContent(
@@ -187,17 +196,22 @@ async function getPolishedContent(
   content: string,
 ): Promise<string> {
   console.log("start get polished content");
-  const prompt = await getPrompt("Polishing");
-  const polishedContentResponse = await axios.post(
-    `${DS_SERVICE_URL}/api/polish`,
-    {
-      title,
-      content,
-      prompt: prompt.content,
-    },
-  );
-  console.log("polishedContentResponse", polishedContentResponse.data);
-  return polishedContentResponse.data.content;
+  try {
+    const prompt = await getPrompt("Polishing");
+    const polishedContentResponse = await axios.post(
+      `${DS_SERVICE_URL}/api/polish`,
+      {
+        title,
+        content,
+        prompt: prompt.content,
+      },
+    );
+    console.log("polishedContentResponse", polishedContentResponse.data);
+    return polishedContentResponse.data.content;
+  } catch (error) {
+    console.error("Failed to polish HTML content:", error);
+    throw error;
+  }
 }
 
 async function getTopicNames(): Promise<string[]> {
@@ -226,18 +240,23 @@ async function getSummary(
   topicName: string,
 ): Promise<Summary> {
   console.log("start get summary");
-  const prompt = await getPrompt("Summary");
-  const seoKeywords = await getSEOKeywords(topicName);
-  const summaryResponse = await axios.post<Summary>(
-    `${DS_SERVICE_URL}/api/summarize`,
-    {
-      content,
-      prompt: prompt.content,
-      seoKeywords: seoKeywords,
-    },
-  );
-  console.log("summaryResponse", summaryResponse.data);
-  return summaryResponse.data;
+  try {
+    const prompt = await getPrompt("Summary");
+    const seoKeywords = await getSEOKeywords(topicName);
+    const summaryResponse = await axios.post<Summary>(
+      `${DS_SERVICE_URL}/api/summarize`,
+      {
+        content,
+        prompt: prompt.content,
+        seoKeywords: seoKeywords,
+      },
+    );
+    console.log("summaryResponse", summaryResponse.data);
+    return summaryResponse.data;
+  } catch (error) {
+    console.error("Failed to get summary:", error);
+    throw error;
+  }
 }
 
 async function getContentAnalysis(
@@ -245,12 +264,17 @@ async function getContentAnalysis(
   topicOptions: string[],
 ): Promise<ContentAnalysis> {
   console.log("start get quality score");
-  const prompt = await getPrompt("Analysis");
-  const contentAnalysisResponse = await axios.post<ContentAnalysis>(
-    `${DS_SERVICE_URL}/api/analyze`,
-    { content, topicOptions, prompt: prompt.content },
-  );
-  return contentAnalysisResponse.data;
+  try {
+    const prompt = await getPrompt("Analysis");
+    const contentAnalysisResponse = await axios.post<ContentAnalysis>(
+      `${DS_SERVICE_URL}/api/analyze`,
+      { content, topicOptions, prompt: prompt.content },
+    );
+    return contentAnalysisResponse.data;
+  } catch (error) {
+    console.error("Failed to get content analysis:", error);
+    throw error;
+  }
 }
 async function storeProcessedContent(
   article: Article,

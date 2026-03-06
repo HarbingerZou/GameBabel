@@ -15,7 +15,7 @@ const DATA_PERSISTENCE_URL =
 
 export const translateContent = async (
   processedContentId: string,
-  targetLanguage: Language
+  targetLanguage: Language,
 ): Promise<Translation | null> => {
   // Get the processed content
   const processedContent = await getProcessedContent(processedContentId);
@@ -24,20 +24,24 @@ export const translateContent = async (
   }
   const shouldReject = await shouldRejectTranslation(
     processedContent,
-    targetLanguage
+    targetLanguage,
   );
   if (shouldReject) {
     return null;
   }
   // Translate the processed content
-  const { translatedContent, translatedTitle, translatedSeoTitle, translatedSummary } =
-    await getTranslatedHtml(
-      processedContent.content,
-      targetLanguage,
-      processedContent.title,
-      processedContent.seoTitle,
-      processedContent.summary
-    );
+  const {
+    translatedContent,
+    translatedTitle,
+    translatedSeoTitle,
+    translatedSummary,
+  } = await getTranslatedHtml(
+    processedContent.content,
+    targetLanguage,
+    processedContent.title,
+    processedContent.seoTitle,
+    processedContent.summary,
+  );
 
   // Store the translation
   const translationResponse: Translation = await storeTranslation(
@@ -46,7 +50,7 @@ export const translateContent = async (
     translatedContent,
     translatedTitle,
     translatedSeoTitle,
-    translatedSummary
+    translatedSummary,
   );
 
   return translationResponse;
@@ -54,11 +58,11 @@ export const translateContent = async (
 
 async function shouldRejectTranslation(
   processedContent: ProcessedContent,
-  targetLanguage: Language
+  targetLanguage: Language,
 ): Promise<boolean> {
   const _id = processedContent._id;
   const translationResponse = await axios.get(
-    `${DATA_PERSISTENCE_URL}/api/translation/${_id}/${targetLanguage}`
+    `${DATA_PERSISTENCE_URL}/api/translation/${_id}/${targetLanguage}`,
   );
   const translation = translationResponse.data;
   if (translation !== null) {
@@ -70,20 +74,20 @@ async function shouldRejectTranslation(
 
 async function getTranslation(
   processedContentId: string,
-  targetLanguage: string
+  targetLanguage: string,
 ) {
   const response = await axios.get(
-    `${DATA_PERSISTENCE_URL}/api/translation/${processedContentId}/${targetLanguage}`
+    `${DATA_PERSISTENCE_URL}/api/translation/${processedContentId}/${targetLanguage}`,
   );
   return response.data;
 }
 
 async function getProcessedContent(
-  contentId: string
+  contentId: string,
 ): Promise<ProcessedContent> {
   try {
     const response = await axios.get(
-      `${DATA_PERSISTENCE_URL}/api/processed-content/id/${contentId}`
+      `${DATA_PERSISTENCE_URL}/api/processed-content/id/${contentId}`,
     );
     return response.data;
   } catch (error) {
@@ -97,7 +101,7 @@ async function getTranslatedHtml(
   language: Language,
   title: string,
   seoTitle: string,
-  summary: string
+  summary: string,
 ): Promise<{
   translatedContent: string;
   translatedTitle: string;
@@ -105,28 +109,38 @@ async function getTranslatedHtml(
   translatedSummary: string;
 }> {
   console.log("start translate html");
-  const prompt = await getPrompt("Translation");
-  const translateResponse = await axios.post(
-    `${DS_SERVICE_URL}/api/translate-html`,
-    {
-      htmlContent: html,
-      language: language,
-      title: title,
-      seoTitle: seoTitle,
-      summary: summary,
-      prompt: prompt.content,
-    }
-  );
+  try {
+    const prompt = await getPrompt("Translation");
+    const translateResponse = await axios.post(
+      `${DS_SERVICE_URL}/api/translate-html`,
+      {
+        htmlContent: html,
+        language: language,
+        title: title,
+        seoTitle: seoTitle,
+        summary: summary,
+        prompt: prompt.content,
+      },
+    );
 
-  const {
-    translatedHtml: translatedContent,
-    title: translatedTitle,
-    seoTitle: translatedSeoTitle,
-    summary: translatedSummary,
-  } = translateResponse.data;
+    const {
+      translatedHtml: translatedContent,
+      title: translatedTitle,
+      seoTitle: translatedSeoTitle,
+      summary: translatedSummary,
+    } = translateResponse.data;
 
-  console.log("Translated HTML length:", translatedContent.length);
-  return { translatedContent, translatedTitle, translatedSeoTitle, translatedSummary };
+    console.log("Translated HTML length:", translatedContent.length);
+    return {
+      translatedContent,
+      translatedTitle,
+      translatedSeoTitle,
+      translatedSummary,
+    };
+  } catch (error) {
+    console.error("Failed to translate HTML:", error);
+    throw error;
+  }
 }
 
 async function storeTranslation(
@@ -134,8 +148,8 @@ async function storeTranslation(
   targetLanguage: string,
   translatedContent: string,
   title: string,
-  seoTitle:string|null,
-  summary: string
+  seoTitle: string | null,
+  summary: string,
 ): Promise<Translation> {
   const { _id } = processedContent;
   try {
@@ -154,11 +168,11 @@ async function storeTranslation(
           translationProvider: "DeepSeek",
         },
         title: title,
-        seoTitle:seoTitle,
+        seoTitle: seoTitle,
         author: processedContent.author,
         url: processedContent.url,
         summary: summary,
-      }
+      },
     );
 
     if (response.status !== 201) {
@@ -175,7 +189,7 @@ async function storeTranslation(
 
 async function getPrompt(category: Category): Promise<Prompt> {
   const promptResponse = await axios.get(
-    `${DATA_PERSISTENCE_URL}/api/prompt/category/${category}`
+    `${DATA_PERSISTENCE_URL}/api/prompt/category/${category}`,
   );
   return promptResponse.data;
 }
