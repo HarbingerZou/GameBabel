@@ -1,5 +1,6 @@
 import { GetServerSideProps } from "next";
 import { useState } from "react";
+import { useRouter } from "next/router";
 import Link from "next/link";
 import { RedisManager } from "../../queue_workers/RedisManager";
 import { JobStats } from "../../queue_workers/JobQueue";
@@ -15,7 +16,15 @@ interface QueuesPageProps {
 }
 
 export default function QueuesPage({ queueInfos, error }: QueuesPageProps) {
+  const router = useRouter();
   const [isTriggering, setIsTriggering] = useState(false);
+  const [isClearing, setIsClearing] = useState(false);
+  const [clearResult, setClearResult] = useState<{
+    success: boolean;
+    message: string;
+    cleared?: string[];
+    errors?: string[];
+  } | null>(null);
   const [triggerResult, setTriggerResult] = useState<{
     success: boolean;
     message: string;
@@ -60,6 +69,46 @@ export default function QueuesPage({ queueInfos, error }: QueuesPageProps) {
     }
   };
 
+  const handleClearAllQueues = async () => {
+    if (
+      !confirm(
+        "This will permanently remove all jobs from all queues in Redis. Continue?"
+      )
+    ) {
+      return;
+    }
+    setIsClearing(true);
+    setClearResult(null);
+    try {
+      const response = await fetch("/api/queues/clear-all", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+      });
+      const result = await response.json();
+      if (response.ok) {
+        setClearResult({
+          success: true,
+          message: result.message,
+          cleared: result.cleared,
+          errors: result.errors,
+        });
+        router.replace(router.asPath);
+      } else {
+        setClearResult({
+          success: false,
+          message: result.error || "Failed to clear queues",
+        });
+      }
+    } catch (err) {
+      setClearResult({
+        success: false,
+        message: "Network error occurred",
+      });
+    } finally {
+      setIsClearing(false);
+    }
+  };
+
   if (error) {
     return (
       <div className="p-4">
@@ -75,14 +124,50 @@ export default function QueuesPage({ queueInfos, error }: QueuesPageProps) {
     <div className="p-4">
       <div className="flex justify-between items-center mb-6">
         <h1 className="text-2xl font-bold">Queue Status</h1>
-        <button
-          onClick={handleTriggerTest}
-          disabled={isTriggering}
-          className={`px-4 py-2 rounded-lg font-medium transition-colors bg-blue-900 text-white hover:bg-blue-800`}
-        >
-          {isTriggering ? "Triggering..." : "Trigger Test Processing"}
-        </button>
+        <div className="flex gap-2">
+          <button
+            onClick={handleClearAllQueues}
+            disabled={isClearing}
+            className="px-4 py-2 rounded-lg font-medium transition-colors bg-red-900 text-white hover:bg-red-800 disabled:opacity-50"
+          >
+            {isClearing ? "Clearing..." : "Clear All Queues"}
+          </button>
+          <button
+            onClick={handleTriggerTest}
+            disabled={isTriggering}
+            className="px-4 py-2 rounded-lg font-medium transition-colors bg-blue-900 text-white hover:bg-blue-800 disabled:opacity-50"
+          >
+            {isTriggering ? "Triggering..." : "Trigger Test Processing"}
+          </button>
+        </div>
       </div>
+
+      {clearResult && (
+        <div
+          className={`mb-4 p-4 rounded-lg border ${
+            clearResult.success
+              ? "bg-green-50 border-green-200 text-green-800"
+              : "bg-red-50 border-red-200 text-red-800"
+          }`}
+        >
+          <div className="font-medium">
+            {clearResult.success ? "Queues cleared" : "Error"}
+          </div>
+          <div className="text-sm mt-1">{clearResult.message}</div>
+          {clearResult.cleared?.length ? (
+            <div className="text-sm mt-1">
+              Cleared: {clearResult.cleared.join(", ")}
+            </div>
+          ) : null}
+          {clearResult.errors?.length ? (
+            <ul className="text-sm mt-1 list-disc list-inside">
+              {clearResult.errors.map((e, i) => (
+                <li key={i}>{e}</li>
+              ))}
+            </ul>
+          ) : null}
+        </div>
+      )}
 
       {triggerResult && (
         <div

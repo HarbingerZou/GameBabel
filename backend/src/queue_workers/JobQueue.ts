@@ -215,6 +215,11 @@ export class JobQueue<
     await this.queue.resume();
   }
 
+  // Obliterate the queue: remove all jobs and queue data from Redis
+  async obliterate(options?: { force?: boolean }): Promise<void> {
+    await this.queue.obliterate({ force: true, ...options });
+  }
+
   // Close the queue and worker
   async close(): Promise<void> {
     await this.queue.close();

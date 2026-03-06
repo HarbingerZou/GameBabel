@@ -181,6 +181,32 @@ export class RedisManager {
   }
 
   /**
+   * Clear all queues in Redis: obliterate each queue and remove from memory
+   */
+  public static async clearAllQueues(): Promise<{ cleared: string[]; errors: string[] }> {
+    const cleared: string[] = [];
+    const errors: string[] = [];
+    const queueNames = await RedisManager.listQueueNamesInRedis();
+
+    for (const name of queueNames) {
+      try {
+        const queue = await RedisManager.getExistingQueue(name);
+        if (queue) {
+          await queue.obliterate({ force: true });
+          await queue.close();
+          RedisManager.queues.delete(name);
+          cleared.push(name);
+        }
+      } catch (error) {
+        const message = error instanceof Error ? error.message : String(error);
+        errors.push(`${name}: ${message}`);
+      }
+    }
+
+    return { cleared, errors };
+  }
+
+  /**
    * Close all queues and Redis connection
    */
   public static async close(): Promise<void> {
