@@ -87,31 +87,59 @@ async function imageProcessingBranch(article: Article): Promise<OcrHTML[]> {
   if (imageUrls.length === 0) {
     return [];
   }
-  // Convert relative URL to absolute URL if needed
   const absoluteImageUrls = imageUrls.map((imageUrl: string) =>
     imageUrl.startsWith("//") ? `https:${imageUrl}` : imageUrl,
   );
-  try {
-    const ocrHtmls: { imageUrl: string; htmlContent: string }[] =
-      await Promise.all(
-        absoluteImageUrls.map(async (imageUrl: string) => {
-          const ocrHtml = await axios.post(
-            `${DS_SERVICE_URL}/api/transform-image-ocr`,
-            {
-              imageUrl: imageUrl,
-            },
-          );
-          return ocrHtml.data;
-        }),
-      );
-    return ocrHtmls.map((ocrHtml) => ({
-      imageUrl: ocrHtml.imageUrl,
-      ocrHtml: ocrHtml.htmlContent,
-    }));
-  } catch (error) {
-    console.error("Failed to process image processing branch:", error);
-    throw error;
+  console.log("Absolute image URLs:", absoluteImageUrls);
+
+  const ocrResults: { imageUrl: string; data: OCRResultData[] }[] = [];
+  for (let index = 0; index < absoluteImageUrls.length; index++) {
+    const imageUrl = absoluteImageUrls[index];
+    try {
+      const data = await getOcrResults(article._id, imageUrl);
+      ocrResults.push({ imageUrl, data });
+    } catch (error) {
+      console.error(`Failed to process image ${imageUrl}:`, error);
+    }
   }
+  return getOcrHtmls(ocrResults);
+}
+
+async function getOcrResults(
+  articleId: string,
+  imageUrl: string,
+): Promise<OCRResultData[]> {
+  const ocrResponse = await axios.post<OCRResult>(
+    `${OCR_SERVICE_URL}/api/ocr`,
+    { articleId, imageUrl },
+  );
+  return ocrResponse.data.data;
+}
+
+async function getOcrHtmls(
+  ocrResults: { imageUrl: string; data: OCRResultData[] }[],
+): Promise<OcrHTML[]> {
+  console.log("start get OCR HTML for", ocrResults.length, "images");
+  const prompt = await getPrompt("OCR");
+  const transformPromises = ocrResults.map(async (ocrResult) => {
+    try {
+      const transformResponse = await axios.post(
+        `${DS_SERVICE_URL}/api/transform-ocr`,
+        { ocrResult: ocrResult.data, prompt: prompt.content },
+      );
+      return {
+        imageUrl: ocrResult.imageUrl,
+        ocrHtml: transformResponse.data.htmlContent || "",
+      };
+    } catch (error) {
+      console.error(
+        `Failed to transform OCR for image ${ocrResult.imageUrl}:`,
+        error,
+      );
+      return { imageUrl: ocrResult.imageUrl, ocrHtml: "" };
+    }
+  });
+  return Promise.all(transformPromises);
 }
 
 async function textProcessingBranch(article: Article): Promise<string> {
