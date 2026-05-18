@@ -10,6 +10,7 @@ import type {
   Summary,
 } from "../common.type";
 import { extractImageUrls } from "./image_processing";
+import { toPinyinName } from "./pinyin";
 import axios from "axios";
 
 const OCR_SERVICE_URL =
@@ -320,7 +321,7 @@ async function storeProcessedContent(
       `${DATA_PERSISTENCE_URL}/api/processed-content/${article._id}`,
       {
         title: article.title,
-        author: article.author,
+        author: toPinyinName(article.author),
         url: article.url,
         summary: summary.summary,
         seoTitle: summary.seoTitle,
