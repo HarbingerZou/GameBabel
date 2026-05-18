@@ -154,9 +154,23 @@ export interface Prompt {
   category: Category;
 }
 
+export interface GlossaryEntry {
+  _id?: string;
+  sourceTerm: string;
+  note: string;
+  translations: {
+    english: string;
+    spanish: string;
+    japanese: string;
+    french: string;
+    russian: string;
+  };
+}
+
 export interface Topic {
   _id: string;
   name: string;
   createdAt: string;
   seoKeywords: string[];
+  glossary: GlossaryEntry[];
 }

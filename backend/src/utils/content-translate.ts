@@ -1,9 +1,11 @@
 import axios from "axios";
 import type {
   Category,
+  GlossaryEntry,
   Language,
   ProcessedContent,
   Prompt,
+  Topic,
   Translation,
 } from "../common.type";
 
@@ -41,6 +43,7 @@ export const translateContent = async (
     processedContent.title,
     processedContent.seoTitle,
     processedContent.summary,
+    processedContent.metadata.topic ?? undefined,
   );
 
   // Store the translation
@@ -96,12 +99,38 @@ async function getProcessedContent(
   }
 }
 
+async function buildGlossarySection(
+  topicCode: string,
+  language: Language,
+): Promise<string> {
+  try {
+    const response = await axios.get(
+      `${DATA_PERSISTENCE_URL}/api/topic/by-name/${topicCode}`,
+    );
+    const topic: Topic = response.data;
+    const entries: GlossaryEntry[] = topic.glossary ?? [];
+    type TranslationKey = keyof GlossaryEntry["translations"];
+    const langKey = language as TranslationKey;
+    const relevant = entries.filter(
+      (e) => e.sourceTerm && e.translations[langKey],
+    );
+    if (relevant.length === 0) return "";
+    const rows = relevant
+      .map((e) => `${e.sourceTerm} → ${e.translations[langKey]}`)
+      .join("\n");
+    return `\n\n[GLOSSARY: Always use these exact translations for the following terms]\nChinese → ${language}\n${rows}`;
+  } catch {
+    return "";
+  }
+}
+
 async function getTranslatedHtml(
   html: string,
   language: Language,
   title: string,
   seoTitle: string,
   summary: string,
+  topicCode?: string,
 ): Promise<{
   translatedContent: string;
   translatedTitle: string;
@@ -110,7 +139,14 @@ async function getTranslatedHtml(
 }> {
   console.log("start translate html");
   try {
-    const prompt = await getPrompt("Translation");
+    const [prompt, glossarySection] = await Promise.all([
+      getPrompt("Translation"),
+      topicCode ? buildGlossarySection(topicCode, language) : Promise.resolve(""),
+    ]);
+    const promptWithGlossary = prompt.content + glossarySection;
+    if (glossarySection) {
+      console.log(`Injected glossary for topic "${topicCode}" (${language})`);
+    }
     const translateResponse = await axios.post(
       `${DS_SERVICE_URL}/api/translate-html`,
       {
@@ -119,7 +155,7 @@ async function getTranslatedHtml(
         title: title,
         seoTitle: seoTitle,
         summary: summary,
-        prompt: prompt.content,
+        prompt: promptWithGlossary,
       },
     );
 

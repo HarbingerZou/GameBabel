@@ -50,6 +50,10 @@ services:
       - "8003:3000"
     environment:
       - PUPPETEER_EXECUTABLE_PATH=/usr/bin/chromium
+      # Paste your Bilibili cookie string here to bypass 412 IP blocks
+      # Get it from browser DevTools → Application → Cookies → bilibili.com
+      # Format: "SESSDATA=xxx; bili_jct=xxx; buvid3=xxx; ..."
+      - BILIBILI_COOKIE=${BILIBILI_COOKIE:-}
     restart: unless-stopped
 
   data-persistence:
@@ -60,7 +64,7 @@ services:
     ports:
       - "8004:3000"
     environment:
-      - MONGODB_URI=mongodb+srv://guest:qazwsxedc@default.ktjsvq6.mongodb.net
+      - MONGODB_URI=mongodb+srv://guest:qazwsxedc@default.ktjsvq6.mongodb.net/gamebabel_prod?retryWrites=true&w=majority&appName=translayze
     restart: unless-stopped
 
 volumes:

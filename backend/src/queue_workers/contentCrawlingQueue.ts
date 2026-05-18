@@ -34,6 +34,11 @@ export class ContentCrawlingQueue {
           await updateProgress(10);
           console.log("Step 1: Validating URL...");
 
+          // Normalize protocol-relative URLs
+          if (data.url && data.url.startsWith("//")) {
+            data.url = `https:${data.url}`;
+          }
+
           // Validate URL
           if (!data.url || !data.url.startsWith("http")) {
             throw new Error("Invalid URL provided");

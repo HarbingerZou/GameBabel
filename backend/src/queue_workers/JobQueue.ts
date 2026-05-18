@@ -37,6 +37,10 @@ export type JobProcessor<T extends JobData, R extends JobResult> = (
 ) => Promise<R>;
 
 //use only to create a a reference to a queue in redis
+// In-process worker registry: ensures at most one Worker per queue name per process.
+// Cleared on process restart, so workers are always re-created after a backend restart.
+const workerRegistry = new Map<string, Worker>();
+
 export class JobQueue<
   T extends JobData = JobData,
   R extends JobResult = JobResult
@@ -86,14 +90,11 @@ export class JobQueue<
     }
 
     try {
-      let jobQueue: JobQueue<T, R>;
-      if (queueNames.includes(queueName)) {
-        jobQueue = new JobQueue<T, R>(queueName);
-      } else {
-        jobQueue = new JobQueue<T, R>(queueName);
-        if (!processor) {
-          throw new Error("Processor is required to create a new queue");
-        }
+      const jobQueue = new JobQueue<T, R>(queueName);
+      if (processor && !workerRegistry.has(queueName)) {
+        // Create a Worker only if none exists in this process.
+        // workerRegistry is cleared on restart, so workers are always
+        // re-created after a backend restart even if the queue exists in Redis.
         const worker = new Worker(
           jobQueue.queue.name,
           async (job: Job<T>) => {
@@ -104,6 +105,7 @@ export class JobQueue<
           defaultWorkerOptions
         );
         JobQueue.setupEventListeners(worker);
+        workerRegistry.set(queueName, worker);
       }
       return jobQueue;
     } finally {

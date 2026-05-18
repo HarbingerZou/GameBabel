@@ -56,7 +56,12 @@ data-persistence/ - MongoDB API（Express.js）
 
 - 所有凭证存 `.env.local`（已有 `.gitignore` 排除），不写入代码
 - 执行状态在本仓库 `status.md` 自治跟踪，不写入 AIMeta active portfolio
-- 内容质量分 ≥ 7 的文章才进入前端展示（qualityScore filter 已实现）
+- 内容质量分 ≥ 7 的文章才进入前端 feed 流展示（qualityScore filter 已实现）
+- **topic = None 的文章完全不出现在前端**：feed、sitemap、直接 URL 均被过滤（sitemap 有 `if (metadata?.topic)` 检查，article page 有 `topicCodes.includes()` 校验）。Bilibili 上与游戏无关的内容抓进来后会自然落入 None，属于正常损耗。
+- **⚠️ 内容可见性规则**：
+  - **有效条件**：topic 为已知游戏分类 + 质量分 ≥ 7 → 进入 feed 流 + sitemap + 可直接访问
+  - **仅 sitemap + 直接访问**：topic 有效 + 质量分 < 7（sitemap 无质量分过滤，feed 有）
+  - **完全不可见**：topic = None，无论质量分多少
 - 不做付费流量投放；不做社交媒体运营；专注 SEO
 
 ## 不做什么

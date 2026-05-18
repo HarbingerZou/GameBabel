@@ -16,17 +16,29 @@
 
 ## 待完成
 
-- [ ] **前端缓存策略修复**：`cache: "no-store"` → 静态生成 / ISR（最高优先级，影响 SEO）
+- [x] **前端缓存策略修复**：已改为 ISR `revalidate: 3600`，全站生效
+- [x] MongoDB fallback URI 已指向 `gamebabel_prod`（server.ts:19）
+- [x] 翻译词汇表注入：翻译时自动注入对应游戏 glossary，修正专有名词翻译
+- [ ] **Bilibili 412 IP 封锁**：需要提供 `BILIBILI_COOKIE` 环境变量（见下方说明）
 - [ ] Google Search Console 接入 + sitemap 提交
-- [ ] 内容规模扩张：目标每游戏 × 每语言 50+ 篇
+- [ ] 内容规模扩张：目标每游戏 × 每语言 50+ 篇（当前：108 processed / 505 translations）
 - [ ] gamebabel-web 和 GameBabel/data-persistence 重复代码确认 source of truth
-- [ ] MongoDB 连接串（data-persistence/server.ts:19）确认是否为生产凭证
+
+## 环境说明
+
+- **本地 MongoDB**：开发/测试用，数据量小（46 篇原始，25 处理，21 翻译）
+- **生产 MongoDB**：独立实例，承载真实 SEO 流量（Amplitude 数据来源于此）
 
 ## 当前阻塞
 
-无硬阻塞。前端缓存问题是已知技术债，需排期修复。
+**Bilibili 412 IP 封锁**：容器出口 IP 被 Bilibili 风控封锁，所有抓取请求均失败。
+解封方法（任选其一）：
+1. **提供 Bilibili Cookie**（推荐）：用浏览器登录 bilibili.com → DevTools → Application → Cookies → 复制全部 cookie 字符串 → 设置 `BILIBILI_COOKIE=...` 环境变量后重启 crawler 容器
+2. 等待 IP 自动解封（可能需要数小时到数天）
+3. 在新服务器/新 IP 上重新部署
 
 ## 最近变更
 
 - 2026-02-15：SEO title 生成 + 翻译、Topic 管理系统重构、UI 增强
-- 2026-05-17：分公司初始化，补建 AIMeta portfolio 战略记忆文件
+- 2026-05-17：分公司初始化，补建 AIMeta portfolio 战略记忆文件；Glossary 嵌入 Topic 模型，前端编辑页面，5 游戏词汇表初始化（43 terms），数据写入生产 DB
+- 2026-05-17（续）：翻译 glossary 注入（content-translate.ts + by-name API）；前端 ISR 确认；MongoDB fallback URI 修正；Bilibili cookie 注入机制就绪（`BILIBILI_COOKIE` 环境变量）

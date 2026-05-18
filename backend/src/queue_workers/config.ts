@@ -16,7 +16,7 @@ export const defaultQueueOptions: QueueOptions = {
     attempts: 3,
     backoff: {
       type: "exponential",
-      delay: 1000,
+      delay: 10000,
     },
     removeOnComplete: false, // Changed to false to keep completed jobs
     removeOnFail: false,
@@ -25,5 +25,5 @@ export const defaultQueueOptions: QueueOptions = {
 
 export const defaultWorkerOptions: WorkerOptions = {
   connection: redisConnection,
-  concurrency: 4, // Process only 1 job at a time
+  concurrency: 1,
 };
