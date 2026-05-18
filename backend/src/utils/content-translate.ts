@@ -201,6 +201,7 @@ async function storeTranslation(
           topic: processedContent.metadata.topic,
           wordCount: processedContent.metadata.wordCount,
           translatedAt: new Date(),
+          originalPubTime: processedContent.metadata.originalPubTime,
           translationProvider: "DeepSeek",
         },
         title: title,

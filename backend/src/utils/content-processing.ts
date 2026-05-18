@@ -334,6 +334,7 @@ async function storeProcessedContent(
           topic: topic,
           crawledType: article.metadata.crawledType,
           processedAt: new Date(),
+          originalPubTime: article.metadata.originalPubTime,
           wordCount: processedContent.split(/\s+/).length,
           processingVersion: 1,
         },

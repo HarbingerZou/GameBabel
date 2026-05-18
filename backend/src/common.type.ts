@@ -62,6 +62,7 @@ export interface ProcessedContent {
     topic: string | null;
     crawledType: "manual" | "profile_auto" | "search_auto";
     processedAt: Date;
+    originalPubTime?: Date | string | null;
     wordCount?: number;
     processingVersion: number;
   };
@@ -84,6 +85,7 @@ export interface Translation {
     topic: string | null;
     wordCount?: number;
     translatedAt: Date;
+    originalPubTime?: Date | string | null;
     translationProvider: string;
   };
 }
