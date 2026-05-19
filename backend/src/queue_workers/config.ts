@@ -25,5 +25,5 @@ export const defaultQueueOptions: QueueOptions = {
 
 export const defaultWorkerOptions: WorkerOptions = {
   connection: redisConnection,
-  concurrency: 1,
+  concurrency: 4,
 };
