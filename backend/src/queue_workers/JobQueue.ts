@@ -1,4 +1,12 @@
-import { Queue, Worker, Job, JobState, JobsOptions, JobProgress } from "bullmq";
+import {
+  Queue,
+  Worker,
+  Job,
+  JobState,
+  JobsOptions,
+  JobProgress,
+  WorkerOptions,
+} from "bullmq";
 import { defaultQueueOptions, defaultWorkerOptions } from "./config";
 import { RedisManager } from "./RedisManager";
 
@@ -64,7 +72,8 @@ export class JobQueue<
     R extends JobResult = JobResult
   >(
     queueName: string,
-    processor?: JobProcessor<T, R>
+    processor?: JobProcessor<T, R>,
+    workerOptionsOverride?: Partial<WorkerOptions>
   ): Promise<JobQueue<T, R>> {
     const queueNames = await RedisManager.listQueueNamesInRedis();
     console.log("queueNames", queueNames);
@@ -102,7 +111,7 @@ export class JobQueue<
               await job.updateProgress(progress);
             });
           },
-          defaultWorkerOptions
+          { ...defaultWorkerOptions, ...workerOptionsOverride }
         );
         JobQueue.setupEventListeners(worker);
         workerRegistry.set(queueName, worker);

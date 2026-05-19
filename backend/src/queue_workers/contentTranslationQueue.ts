@@ -83,7 +83,9 @@ export class ContentTranslationQueue {
               error instanceof Error ? error.message : "Unknown error occurred",
           };
         }
-      }
+      },
+      // Translation only calls DeepSeek (network-bound), no image-ocr bottleneck.
+      { concurrency: 10 }
     );
     return output;
   }
