@@ -205,7 +205,7 @@ async function storeTranslation(
           translationProvider: "DeepSeek",
         },
         title: title,
-        seoTitle: seoTitle,
+        seoTitle: seoTitle || title,
         author: processedContent.author,
         url: processedContent.url,
         summary: summary,
