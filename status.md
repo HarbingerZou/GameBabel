@@ -39,6 +39,7 @@
 
 ## 最近变更
 
+- 2026-10-01：简化爬虫等待：删除通用 loading 扫描、HTML 长度兜底和额外固定等待，统一等待实际正文/列表内的文字或图片；空容器继续等待。
 - 2026-02-15：SEO title 生成 + 翻译、Topic 管理系统重构、UI 增强
 - 2026-05-17：分公司初始化，补建 AIMeta portfolio 战略记忆文件；Glossary 嵌入 Topic 模型，前端编辑页面，5 游戏词汇表初始化（43 terms），数据写入生产 DB
 - 2026-05-17（续）：翻译 glossary 注入（content-translate.ts + by-name API）；前端 ISR 确认；MongoDB fallback URI 修正；Bilibili cookie 注入机制就绪（`BILIBILI_COOKIE` 环境变量）
