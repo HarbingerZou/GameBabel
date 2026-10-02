@@ -1,12 +1,17 @@
-import { useState, useEffect } from "react";
+import { useState } from "react";
 import { useRouter } from "next/router";
 import axios from "axios";
 import { Article, ProcessedContent } from "../common.type";
 import { GetServerSideProps } from "next";
 
+type ArticleListItem = Pick<Article, "_id" | "title" | "url"> & {
+  metadata: Pick<Article["metadata"], "crawledAt" | "engagement">;
+};
+type ProcessedContentSummary = Pick<ProcessedContent, "_id" | "status">;
+
 interface HomeProps {
-  initialArticles: Article[];
-  processedContents: { [key: string]: ProcessedContent };
+  initialArticles: ArticleListItem[];
+  processedContents: Record<string, ProcessedContentSummary>;
   currentPage: number;
   totalPages: number;
   totalArticles: number;
@@ -112,8 +117,8 @@ function InputForm({ onSubmit, loading }: InputFormProps) {
 
 // Article Entry Component
 interface ArticleEntryProps {
-  article: Article;
-  processedContent?: ProcessedContent;
+  article: ArticleListItem;
+  processedContent?: ProcessedContentSummary;
   onViewArticle: (id: string) => void;
   onViewProcessedArticle: (id: string) => void;
 }
@@ -273,8 +278,8 @@ function EmptyArticleList() {
 
 // Article List Component
 interface ArticleListProps {
-  articles: Article[];
-  processedContents: { [key: string]: ProcessedContent };
+  articles: ArticleListItem[];
+  processedContents: Record<string, ProcessedContentSummary>;
   totalArticles: number;
 }
 
@@ -353,8 +358,23 @@ function Pagination({
   totalArticles,
 }: PaginationProps) {
   const router = useRouter();
+  const pageCount = Math.max(1, totalPages);
+  const visiblePages: (number | string)[] = [];
+
+  if (pageCount <= 7) {
+    for (let page = 1; page <= pageCount; page++) visiblePages.push(page);
+  } else {
+    const start = Math.max(2, Math.min(currentPage - 1, pageCount - 4));
+    const end = Math.min(pageCount - 1, Math.max(currentPage + 1, 5));
+    visiblePages.push(1);
+    if (start > 2) visiblePages.push("start-ellipsis");
+    for (let page = start; page <= end; page++) visiblePages.push(page);
+    if (end < pageCount - 1) visiblePages.push("end-ellipsis");
+    visiblePages.push(pageCount);
+  }
 
   const handlePageChange = (page: number) => {
+    if (page < 1 || page > pageCount || page === currentPage) return;
     // Preserve current sort parameter when navigating pages
     const currentSort = router.query.sort as string;
     const url = new URL(window.location.href);
@@ -365,26 +385,31 @@ function Pagination({
     window.location.href = url.pathname + url.search;
   };
   return (
-    <div className="px-6 py-4 border-t border-gray-200">
-      <div className="flex items-center justify-between">
-        <div className="text-sm text-gray-700">
-          Page {currentPage} of {totalPages} ({totalArticles} total articles)
+    <div className="px-4 py-4 border-t border-gray-200 sm:px-6">
+      <div className="flex flex-wrap items-center justify-between gap-x-6 gap-y-4">
+        <div className="flex flex-wrap gap-x-1 text-sm text-gray-700" role="status">
+          <span className="whitespace-nowrap">Page {currentPage} of {pageCount}</span>
+          <span className="whitespace-nowrap">({totalArticles} total articles)</span>
         </div>
-        <div className="flex items-center space-x-2">
+        <nav aria-label="Article pagination" className="flex w-full items-center justify-between gap-2 sm:w-auto sm:justify-start">
           <button
             onClick={() => handlePageChange(currentPage - 1)}
-            disabled={currentPage === 1}
+            disabled={currentPage <= 1}
             className="px-3 py-2 text-sm font-medium text-gray-500 bg-white border border-gray-300 rounded-md hover:bg-gray-50 hover:text-gray-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
           >
             Previous
           </button>
 
-          <div className="flex items-center space-x-1">
-            {Array.from({ length: totalPages }, (_, i) => i + 1).map((page) => (
+          <div className="hidden items-center gap-1 sm:flex">
+            {visiblePages.map((page) => typeof page === "string" ? (
+              <span key={page} aria-hidden="true" className="px-2 text-sm text-gray-500">…</span>
+            ) : (
               <button
                 key={page}
+                aria-label={`Go to page ${page}`}
+                aria-current={currentPage === page ? "page" : undefined}
                 onClick={() => handlePageChange(page)}
-                className={`px-3 py-2 text-sm font-medium rounded-md transition-colors ${
+                className={`min-w-9 px-3 py-2 text-sm font-medium rounded-md transition-colors ${
                   currentPage === page
                     ? "bg-gray-900 text-white"
                     : "text-gray-700 bg-white border border-gray-300 hover:bg-gray-50"
@@ -397,12 +422,12 @@ function Pagination({
 
           <button
             onClick={() => handlePageChange(currentPage + 1)}
-            disabled={currentPage === totalPages}
+            disabled={currentPage >= pageCount}
             className="px-3 py-2 text-sm font-medium text-gray-500 bg-white border border-gray-300 rounded-md hover:bg-gray-50 hover:text-gray-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
           >
             Next
           </button>
-        </div>
+        </nav>
       </div>
     </div>
   );
@@ -594,6 +619,7 @@ export const getServerSideProps: GetServerSideProps = async (context) => {
     const apiUrl = new URL(`${DATA_PERSISTENCE_URL}/api/content`);
     apiUrl.searchParams.set("page", page.toString());
     apiUrl.searchParams.set("limit", limit.toString());
+    apiUrl.searchParams.set("view", "list");
     if (sort) {
       apiUrl.searchParams.set("sort", sort);
     }
@@ -610,26 +636,7 @@ export const getServerSideProps: GetServerSideProps = async (context) => {
     const totalPages = data.totalPages;
     const currentPage = data.page;
 
-    // Fetch processed content for each article
-    const processedContents: { [key: string]: ProcessedContent } = {};
-    await Promise.all(
-      articles.map(async (article: Article) => {
-        try {
-          const processedResponse = await fetch(
-            `${DATA_PERSISTENCE_URL}/api/processed-content/${article._id}`
-          );
-          if (processedResponse.ok) {
-            const processedContent = await processedResponse.json();
-            processedContents[article._id] = processedContent;
-          }
-        } catch (error) {
-          console.error(
-            `Error fetching processed content for article ${article._id}:`,
-            error
-          );
-        }
-      })
-    );
+    const processedContents = data.processedContents;
 
     return {
       props: {
