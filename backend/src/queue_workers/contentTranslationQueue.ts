@@ -74,14 +74,9 @@ export class ContentTranslationQueue {
           };
         } catch (error) {
           console.error("Content translation failed:", error);
-          return {
-            processedContentId: data.processedContentId,
-            targetLanguage: data.targetLanguage,
-            translatedAt: Date.now(),
-            status: "failed",
-            message:
-              error instanceof Error ? error.message : "Unknown error occurred",
-          };
+          // BullMQ retries only rejected processors; returning a failure object
+          // incorrectly marks the job completed and suppresses retries.
+          throw error instanceof Error ? error : new Error(String(error));
         }
       },
       // Translation only calls DeepSeek (network-bound), no image-ocr bottleneck.

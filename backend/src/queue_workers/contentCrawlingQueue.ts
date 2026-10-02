@@ -68,14 +68,9 @@ export class ContentCrawlingQueue {
           };
         } catch (error) {
           console.error("Content crawling failed:", error);
-          return {
-            url: data.url,
-            articleId: "",
-            processedAt: Date.now(),
-            status: "failed",
-            message:
-              error instanceof Error ? error.message : "Unknown error occurred",
-          };
+          // BullMQ retries only rejected processors; returning a failure object
+          // incorrectly marks the job completed and suppresses retries.
+          throw error instanceof Error ? error : new Error(String(error));
         }
       }
     );
